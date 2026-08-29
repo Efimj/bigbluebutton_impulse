@@ -9,6 +9,7 @@ import { ChatEvents } from '/imports/ui/core/enums/chat';
 import ConfirmModal from '/imports/ui/components/common/modal/confirmation/component';
 import Tooltip from '/imports/ui/components/common/tooltip/component';
 import Styled from './styles';
+import { stripAllAttachmentMarkersFromHtml } from '../../chat-attachment';
 
 const intlMessages = defineMessages({
   pinnedMessagesTitle: {
@@ -58,6 +59,10 @@ const intlMessages = defineMessages({
   goToMessage: {
     id: 'app.chat.pinnedMessages.goToMessage',
     description: 'Aria label for navigating to the pinned message',
+  },
+  attachedFile: {
+    id: 'app.chat.attachment.file',
+    description: 'Chat attachment label',
   },
 });
 
@@ -128,7 +133,8 @@ export default function PinnedMessageComponent({ message, isModerator, pinnedBy 
 
   const pinnedByName = pinnedBy?.name || '';
   const formattedTime = message.createdAt ? intl.formatTime(message.createdAt) : '';
-  const messageAsHtml = message.messageAsHtml ?? '';
+  const messageAsHtml = stripAllAttachmentMarkersFromHtml(message.messageAsHtml ?? '')
+    || intl.formatMessage(intlMessages.attachedFile);
 
   return (
     <Styled.Wrapper role="region" aria-label={intl.formatMessage(intlMessages.pinnedMessagesTitle)}>

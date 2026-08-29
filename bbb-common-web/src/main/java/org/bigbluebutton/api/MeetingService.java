@@ -112,6 +112,7 @@ public class MeetingService implements MessageListener {
   private SharedNotesRedirectValidatorService sharedNotesRedirectValidator;
   private SecureUrlDownloader secureUrlDownloader;
   private int maxSharedNotesInitialContentUrlPayloadSize;
+  private ChatAttachmentService chatAttachmentService;
 
   private IBbbWebApiGWApp gw;
 
@@ -1134,6 +1135,9 @@ public class MeetingService implements MessageListener {
   }
 
   private void meetingDestroyed(MeetingDestroyed message) {
+    if (chatAttachmentService != null) {
+      chatAttachmentService.removeMeetingFiles(message.meetingId);
+    }
     Meeting m = getMeeting(message.meetingId);
     if (m != null) {
       long now = System.currentTimeMillis();
@@ -1156,6 +1160,9 @@ public class MeetingService implements MessageListener {
   }
 
   private void meetingEnded(MeetingEnded message) {
+    if (chatAttachmentService != null) {
+      chatAttachmentService.removeMeetingFiles(message.meetingId);
+    }
     Meeting m = getMeeting(message.meetingId);
     if (m != null) {
       long now = System.currentTimeMillis();
@@ -1700,6 +1707,10 @@ public class MeetingService implements MessageListener {
 
   public void setMaxSharedNotesInitialContentUrlPayloadSize(int maxSharedNotesInitialContentUrlPayloadSize) {
     this.maxSharedNotesInitialContentUrlPayloadSize = maxSharedNotesInitialContentUrlPayloadSize;
+  }
+
+  public void setChatAttachmentService(ChatAttachmentService chatAttachmentService) {
+    this.chatAttachmentService = chatAttachmentService;
   }
 
 }

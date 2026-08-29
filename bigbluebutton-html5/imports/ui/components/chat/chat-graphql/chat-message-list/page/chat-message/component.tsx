@@ -11,6 +11,7 @@ import { defineMessages, FormattedTime, useIntl } from 'react-intl';
 import FocusTrap from 'focus-trap-react';
 import classNames from 'classnames';
 import { useMutation } from '@apollo/client';
+import { Popover } from '@mui/material';
 import ChatMessageHeader from './message-header/component';
 import { PollHeaderAction } from './message-header/styles';
 import ChatMessageTextContent from './message-content/text-content/component';
@@ -50,13 +51,13 @@ import KEYS from '/imports/utils/keys';
 import ConfirmationModal from '/imports/ui/components/common/modal/confirmation/component';
 import logger from '/imports/startup/client/logger';
 import { CHAT_DELETE_MESSAGE_MUTATION, CHAT_SET_PINNED_MUTATION } from './mutations';
-import { Popover } from '@mui/material';
 import { EmojiPicker, EmojiPickerWrapper } from './message-toolbar/styles';
 import { isMobile } from '/imports/utils/deviceInfo';
 import { layoutSelect } from '/imports/ui/components/layout/context';
 import { Layout } from '/imports/ui/components/layout/layoutTypes';
 import { useModalRegistration } from '/imports/ui/core/singletons/modalController';
 import useChat from '/imports/ui/core/hooks/useChat';
+import { parseChatAttachments } from '../../../chat-attachment';
 
 interface ChatMessageProps {
   message: Message;
@@ -561,6 +562,10 @@ const ChatMessage = React.forwardRef<ChatMessageRef, ChatMessageProps>(({
   const editTime = message.editedAt ? new Date(message.editedAt) : null;
   const deleteTime = message.deletedAt ? new Date(message.deletedAt) : null;
   const isPinned = message.messageId === currentPinnedMessageId;
+  const hasAttachments = useMemo(
+    () => parseChatAttachments(message.message).attachments.length > 0,
+    [message.message],
+  );
 
   const msgTime = formattedTime;
   const clearMessage = `${msgTime} ${intl.formatMessage(intlMessages.chatClear)}`;
@@ -761,6 +766,7 @@ const ChatMessage = React.forwardRef<ChatMessageRef, ChatMessageProps>(({
           component: (
             <ChatMessageTextContent
               text={message.messageAsHtml}
+              rawText={message.message}
             />
           ),
         };
@@ -993,7 +999,7 @@ const ChatMessage = React.forwardRef<ChatMessageRef, ChatMessageProps>(({
         onReactionPopoverOpenChange={setIsToolbarReactionPopoverOpen}
         reactionPopoverIsOpen={isToolbarReactionPopoverOpen}
         chatDeleteEnabled={chatDeleteEnabled}
-        chatEditEnabled={chatEditEnabled}
+        chatEditEnabled={chatEditEnabled && !hasAttachments}
         chatReactionsEnabled={chatReactionsEnabled}
         chatReplyEnabled={chatReplyEnabled}
         onDelete={onDelete}

@@ -49,6 +49,11 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
         <property name="fetchUrlAllowedLocalHosts" value="${fetchUrlAllowedLocalHosts}" />
     </bean>
 
+    <bean id="chatAttachmentService" class="org.bigbluebutton.api.ChatAttachmentService">
+        <property name="uploadsDir" value="${chatAttachmentsDir}"/>
+        <property name="maxFileSize" value="${chatAttachmentMaxFileSize}"/>
+    </bean>
+
     <bean id="meetingService" class="org.bigbluebutton.api.MeetingService"
           init-method="start" destroy-method="stop">
         <property name="redisStorageService" ref="redisStorageService"/>
@@ -72,6 +77,7 @@ with BigBlueButton; if not, see <http://www.gnu.org/licenses/>.
         <property name="sharedNotesRedirectValidator" ref="sharedNotesRedirectValidator"/>
         <property name="secureUrlDownloader" ref="secureUrlDownloader"/>
         <property name="maxSharedNotesInitialContentUrlPayloadSize" value="${maxSharedNotesInitialContentUrlPayloadSize}"/>
+        <property name="chatAttachmentService" ref="chatAttachmentService"/>
     </bean>
 
     <bean id="oldMessageReceivedGW" class="org.bigbluebutton.api2.bus.OldMessageReceivedGW">

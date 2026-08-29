@@ -36,8 +36,55 @@ const Form = styled.form<FormProps>`
 
 const Wrapper = styled.div`
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   border-radius: 0.75rem;
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
+`;
+
+const AttachmentsPreview = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+`;
+
+const AttachmentChip = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid ${colorBorder};
+  border-radius: ${borderRadius};
+  background: ${colorWhite};
+  color: ${colorText};
+  font-size: calc(${fontSizeBase} * 0.75);
+`;
+
+const AttachmentName = styled.span`
+  max-width: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const AttachmentSize = styled.span`
+  color: ${colorGrayDark};
+  white-space: nowrap;
+`;
+
+const RemoveAttachmentButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: ${colorGrayDark};
+  cursor: pointer;
 `;
 
 const Input = styled(TextareaAutosize)`
@@ -222,4 +269,10 @@ export default {
   EmojiPickerWrapper,
   ChatMessageError,
   InputWrapper,
+  HiddenFileInput,
+  AttachmentsPreview,
+  AttachmentChip,
+  AttachmentName,
+  AttachmentSize,
+  RemoveAttachmentButton,
 };

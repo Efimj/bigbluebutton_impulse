@@ -23,6 +23,9 @@ import {
 import { checkText } from 'smile2emoji';
 import AddReactionIcon from '@mui/icons-material/AddReaction';
 import SendIcon from '@mui/icons-material/Send';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CloseIcon from '@mui/icons-material/Close';
+import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 
 import Styled from './styles';
@@ -55,6 +58,14 @@ import {
 } from './queries';
 import Auth from '/imports/ui/services/auth';
 import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStatus';
+import {
+  ChatAttachment,
+  CHAT_ATTACHMENT_MAX_FILES,
+  CHAT_ATTACHMENT_MAX_FILE_SIZE,
+  formatAttachmentSize,
+  serializeChatAttachment,
+  uploadChatAttachment,
+} from '../chat-attachment';
 
 const CLOSED_CHAT_LIST_KEY = 'closedChatList';
 const START_TYPING_THROTTLE_INTERVAL = 1000;
@@ -87,6 +98,30 @@ const messages = defineMessages({
   emojiButtonLabel: {
     id: 'app.chat.emojiButtonLabel',
     description: 'Chat message emoji picker button label',
+  },
+  attachmentButtonLabel: {
+    id: 'app.chat.attachment.add',
+    description: 'Add files to chat message',
+  },
+  attachmentRemoveLabel: {
+    id: 'app.chat.attachment.remove',
+    description: 'Remove a selected file',
+  },
+  attachmentUploading: {
+    id: 'app.chat.attachment.uploading',
+    description: 'A chat file is uploading',
+  },
+  attachmentTooLarge: {
+    id: 'app.chat.attachment.tooLarge',
+    description: 'Selected chat file exceeds the size limit',
+  },
+  attachmentTooMany: {
+    id: 'app.chat.attachment.tooMany',
+    description: 'Too many chat files selected',
+  },
+  attachmentUploadFailed: {
+    id: 'app.chat.attachment.uploadFailed',
+    description: 'A chat file upload failed',
   },
   inputPlaceholder: {
     id: 'app.chat.inputPlaceholder',
@@ -144,6 +179,9 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
   const [hasErrors, setHasErrors] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [message, setMessage] = React.useState('');
+  const [attachments, setAttachments] = React.useState<ChatAttachment[]>([]);
+  const [attachmentUploading, setAttachmentUploading] = React.useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEmojiPicker, setShowEmojiPicker] = React.useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const emojiPickerButtonRef = useRef<HTMLButtonElement>(null);
@@ -190,6 +228,43 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
         chatId: chatId === PUBLIC_CHAT_ID ? PUBLIC_GROUP_CHAT_ID : chatId,
       },
     });
+  };
+
+  const handleFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (selectedFiles.length === 0) return;
+    if (attachments.length + selectedFiles.length > CHAT_ATTACHMENT_MAX_FILES) {
+      setError(intl.formatMessage(messages.attachmentTooMany, { count: CHAT_ATTACHMENT_MAX_FILES }));
+      return;
+    }
+    const oversized = selectedFiles.find((file) => file.size > CHAT_ATTACHMENT_MAX_FILE_SIZE);
+    if (oversized) {
+      setError(intl.formatMessage(messages.attachmentTooLarge, {
+        size: formatAttachmentSize(CHAT_ATTACHMENT_MAX_FILE_SIZE, intl.locale),
+      }));
+      return;
+    }
+
+    setAttachmentUploading(true);
+    setError(null);
+    try {
+      const results = await Promise.allSettled(selectedFiles.map(uploadChatAttachment));
+      const uploaded = results.flatMap((result) => (
+        result.status === 'fulfilled' ? [result.value] : []
+      ));
+      if (uploaded.length > 0) setAttachments((current) => [...current, ...uploaded]);
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed?.status === 'rejected') {
+        logger.error({
+          logCode: 'chat_attachment_upload_error',
+          extraInfo: { errorMessage: (failed.reason as Error)?.message },
+        }, 'Uploading a chat attachment failed');
+        setError(intl.formatMessage(messages.attachmentUploadFailed));
+      }
+    } finally {
+      setAttachmentUploading(false);
+    }
   };
 
   const throttleHandleUserTyping = useMemo(() => throttle(
@@ -443,11 +518,14 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       e.preventDefault();
 
       const msg = message;
+      const attachmentMarkers = attachments.map(serializeChatAttachment);
+      const outgoingMessage = [msg, ...attachmentMarkers].filter(Boolean).join('\n');
 
-      if (msg.length < minMessageLength || chatSendMessageLoading) return;
+      if ((msg.length < minMessageLength && attachments.length === 0)
+        || chatSendMessageLoading || attachmentUploading) return;
 
       if (disabled
-        || msg.length > maxMessageLength) {
+        || outgoingMessage.length > maxMessageLength) {
         setHasErrors(true);
         return;
       }
@@ -486,7 +564,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       } else if (!chatSendMessageLoading) {
         chatSendMessage({
           variables: {
-            chatMessageInMarkdownFormat: msg,
+            chatMessageInMarkdownFormat: outgoingMessage,
             chatId: chatId === PUBLIC_CHAT_ID ? PUBLIC_GROUP_CHAT_ID : chatId,
             replyToMessageId: repliedMessageId,
           },
@@ -502,6 +580,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       }
 
       setMessage('');
+      setAttachments([]);
       updateUnsentMessages(chatId, '');
       setError(null);
       setHasErrors(false);
@@ -669,6 +748,36 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
           </Styled.EmojiPickerWrapper>
         ) : null}
         <Styled.Wrapper>
+          <Styled.HiddenFileInput
+            ref={fileInputRef}
+            type="file"
+            multiple
+            onChange={handleFilesSelected}
+            tabIndex={-1}
+          />
+          {attachments.length > 0 ? (
+            <Styled.AttachmentsPreview aria-live="polite">
+              {attachments.map((attachment) => (
+                <Styled.AttachmentChip key={attachment.id}>
+                  <AttachFileIcon fontSize="small" />
+                  <Styled.AttachmentName title={attachment.name}>{attachment.name}</Styled.AttachmentName>
+                  <Styled.AttachmentSize>
+                    {formatAttachmentSize(attachment.size, intl.locale)}
+                  </Styled.AttachmentSize>
+                  <Styled.RemoveAttachmentButton
+                    type="button"
+                    onClick={() => setAttachments((current) => (
+                      current.filter(({ id }) => id !== attachment.id)
+                    ))}
+                    aria-label={intl.formatMessage(messages.attachmentRemoveLabel, { name: attachment.name })}
+                    title={intl.formatMessage(messages.attachmentRemoveLabel, { name: attachment.name })}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </Styled.RemoveAttachmentButton>
+                </Styled.AttachmentChip>
+              ))}
+            </Styled.AttachmentsPreview>
+          ) : null}
           <Styled.InputWrapper
             onClick={(e) => {
               if (e.target === e.currentTarget) {
@@ -734,6 +843,33 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
                 </Styled.EmojiButton>
               </Tooltip>
             ) : null}
+            <Tooltip title={<span style={{ fontSize: '0.9rem' }}>{intl.formatMessage(messages.attachmentButtonLabel)}</span>} arrow>
+              <Styled.EmojiButton
+                sx={{
+                  alignSelf: 'center',
+                  height: '100%',
+                  minWidth: 'auto',
+                  color: 'action.active',
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+                data-test="chatAttachmentButton"
+                disabled={disabled
+                  || partnerIsLoggedOut
+                  || chatSendMessageLoading
+                  || attachmentUploading
+                  || Boolean(editingMessage.current)
+                  || attachments.length >= CHAT_ATTACHMENT_MAX_FILES}
+                aria-label={intl.formatMessage(messages.attachmentButtonLabel)}
+              >
+                {attachmentUploading ? (
+                  <CircularProgress
+                    size={20}
+                    aria-label={intl.formatMessage(messages.attachmentUploading)}
+                  />
+                ) : <AttachFileIcon />}
+              </Styled.EmojiButton>
+            </Tooltip>
             <div style={{ zIndex: 10 }}>
               <Tooltip title={<span style={{ fontSize: '0.9rem' }}>{intl.formatMessage(messages.submitLabel)}</span>} arrow>
                 <Styled.SendButton
@@ -747,7 +883,7 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
                     backgroundColor: btnPrimaryBg,
                   }}
                   variant="contained"
-                  disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading}
+                  disabled={disabled || partnerIsLoggedOut || chatSendMessageLoading || attachmentUploading}
                   type="submit"
                   data-test="sendMessageButton"
                   aria-label={intl.formatMessage(messages.submitLabel)}

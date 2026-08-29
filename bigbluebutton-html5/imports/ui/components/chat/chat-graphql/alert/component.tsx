@@ -24,8 +24,16 @@ import useDeduplicatedSubscription from '/imports/ui/core/hooks/useDeduplicatedS
 import useSettings from '/imports/ui/services/settings/hooks/useSettings';
 import { SETTINGS } from '/imports/ui/services/settings/enums';
 import Auth from '/imports/ui/services/auth';
+import {
+  parseChatAttachments,
+  removeAttachmentMarkersFromHtml,
+} from '../chat-attachment';
 
 const intlMessages = defineMessages({
+  attachedFile: {
+    id: 'app.chat.attachment.file',
+    description: 'Chat attachment label',
+  },
   appToastChatPublic: {
     id: 'app.toast.chat.public',
     description: 'when entry various message',
@@ -136,7 +144,10 @@ const ChatAlertGraphql: React.FC<ChatAlertGraphqlProps> = (props) => {
       return intl.formatMessage(intlMessages.publicChatClear);
     }
 
-    return unescapeHtml(stripTags(msg.messageAsHtml));
+    const parsed = parseChatAttachments(msg.message);
+    const visibleMessage = removeAttachmentMarkersFromHtml(msg.messageAsHtml, parsed.markerLines);
+    return unescapeHtml(stripTags(visibleMessage))
+      || (parsed.attachments.length > 0 ? intl.formatMessage(intlMessages.attachedFile) : '');
   };
 
   const createMessage = (msg: Message) => (
