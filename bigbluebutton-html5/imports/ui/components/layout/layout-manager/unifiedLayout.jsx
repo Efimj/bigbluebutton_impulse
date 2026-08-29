@@ -315,8 +315,7 @@ const UnifiedLayout = (props) => {
       if (isMobile) {
         sidebarContentHeight = windowHeight() - DEFAULT_VALUES.navBarHeight;
       } else if (
-        cameraDockInput.numCameras > 0
-        && getCameraDockPosition() === CAMERADOCK_POSITION.SIDEBAR_CONTENT_BOTTOM
+        getCameraDockPosition() === CAMERADOCK_POSITION.SIDEBAR_CONTENT_BOTTOM
         && isOpen
         && !isMediaContentOff()
       ) {
@@ -556,7 +555,9 @@ const UnifiedLayout = (props) => {
 
     const sidebarSize = sidebarNavWidth + sidebarContentWidth;
 
-    if (cameraDockInput.numCameras > 0 && !cameraDockInput.isDragging) {
+    // The camera dock also contains avatar tiles for participants without a
+    // camera, so it occupies layout space even when numCameras is zero.
+    if (!cameraDockInput.isDragging) {
       switch (getCameraDockPosition()) {
         case CAMERADOCK_POSITION.CONTENT_TOP: {
           mediaBounds.width = mediaAreaWidth;
@@ -813,7 +814,7 @@ const UnifiedLayout = (props) => {
     layoutContextDispatch({
       type: ACTIONS.SET_CAMERA_DOCK_OUTPUT,
       value: {
-        display: cameraDockInput.numCameras > 0 || !presentationInput.isOpen,
+        display: true,
         position: cameraPosition,
         minWidth: cameraDockBounds.minWidth,
         width: cameraDockBounds.width,

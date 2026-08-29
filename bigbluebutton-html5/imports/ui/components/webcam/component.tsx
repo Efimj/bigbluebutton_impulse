@@ -38,6 +38,17 @@ const intlMessages = defineMessages({
 
 const CAMERA_DOCK_GRID_SNAP_TOLERANCE = 12;
 const CAMERA_DOCK_GRID_SETTLE_DELAY = 100;
+const CAMERA_DOCK_DRAG_CANCEL_SELECTOR = [
+  'button',
+  'a',
+  'input',
+  'textarea',
+  'select',
+  'option',
+  '[role="button"]',
+  '[contenteditable="true"]',
+  '[data-camera-dock-no-drag]',
+].join(', ');
 
 const snapCameraDockDimensionToGrid = (
   dockSize: number,
@@ -280,7 +291,8 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
           || cameraDock.position === CAMERADOCK_POSITION.CONTENT_RIGHT}
       >
         <Draggable
-          handle="video"
+          handle="#cameraDock"
+          cancel={CAMERA_DOCK_DRAG_CANCEL_SELECTOR}
           bounds="html"
           onStart={handleWebcamDragStart}
           onDrag={() => {
@@ -434,7 +446,9 @@ const WebcamContainer: React.FC = () => {
   const isUnifiedLayout = selectedLayout === LAYOUT_TYPE.UNIFIED_LAYOUT;
   const snapToCameraGrid = isUnifiedLayout;
 
-  const isGridEnabled = isUnifiedLayout && !presentationIsOpen;
+  // In unified layout the Cameras section represents every participant, not
+  // only active video publishers, and remains visible next to main content.
+  const isGridEnabled = isUnifiedLayout;
 
   const { streams: videoUsers, gridUsers } = useVideoStreams();
   VideoService.updateActivePeers(videoUsers);

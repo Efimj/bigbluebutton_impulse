@@ -5,7 +5,9 @@ const Draggable = styled.div<{
   $isDragging: boolean;
 }>`
   ${({ $isDraggable }) => $isDraggable && css`
-    & > video {
+    cursor: grab;
+
+    &:active {
       cursor: grabbing;
     }
   `}

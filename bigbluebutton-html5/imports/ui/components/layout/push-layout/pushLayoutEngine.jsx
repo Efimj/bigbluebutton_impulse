@@ -124,7 +124,10 @@ const PushLayoutEngine = (props) => {
     const contextLayout = enforcedLayout || defaultLayout
       || meetingLayout || currentLayout;
 
-    Session.setItem('isGridEnabled', currentLayout === LAYOUT_TYPE.UNIFIED_LAYOUT && !presentationIsOpen);
+    // Keep participant avatar tiles in the camera dock while presentation or
+    // other main content is open. The unified layout always has at least the
+    // current participant to display, even when nobody publishes a camera.
+    Session.setItem('isGridEnabled', currentLayout === LAYOUT_TYPE.UNIFIED_LAYOUT);
 
     setLayoutType(
       contextLayout,
@@ -370,9 +373,8 @@ const PushLayoutEngine = (props) => {
     }
 
     if (selectedLayout === LAYOUT_TYPE.UNIFIED_LAYOUT
-      && (selectedLayout !== prevProps.selectedLayout
-        || presentationIsOpen !== prevProps.presentationIsOpen)) {
-      Session.setItem('isGridEnabled', !presentationIsOpen);
+      && selectedLayout !== prevProps.selectedLayout) {
+      Session.setItem('isGridEnabled', true);
     }
 
     return () => {};

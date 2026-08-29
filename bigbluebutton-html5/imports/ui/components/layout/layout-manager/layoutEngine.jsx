@@ -96,13 +96,6 @@ const LayoutEngine = () => {
       return cameraDockBounds;
     }
 
-    if (isUnifiedLayout && cameraDockInput.numCameras === 0 && hasPresentation && isOpen) {
-      cameraDockBounds.width = 0;
-      cameraDockBounds.height = 0;
-
-      return cameraDockBounds;
-    }
-
     if (!isOpen || isGeneralMediaOff) {
       cameraDockBounds.width = mediaAreaBounds.width;
       cameraDockBounds.maxWidth = mediaAreaBounds.width;

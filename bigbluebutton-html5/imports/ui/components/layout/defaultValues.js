@@ -14,7 +14,7 @@ const DEFAULT_VALUES = {
   panelType: 'chat',
   fontSize: 16,
 
-  cameraPosition: CAMERADOCK_POSITION.CONTENT_TOP,
+  cameraPosition: CAMERADOCK_POSITION.CONTENT_RIGHT,
   cameraDockTabOrder: 4,
   cameraDockMinHeight: 120,
   cameraDockMinWidth: 120,

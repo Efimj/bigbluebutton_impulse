@@ -9,7 +9,7 @@ import { layoutDispatch, layoutSelect } from '../context';
 import logger from '/imports/startup/client/logger';
 import { isLayoutSupported } from '../utils';
 import { LAYOUT_TYPE } from '../defaultValues';
-import { ACTIONS } from '../enums';
+import { ACTIONS, CAMERADOCK_POSITION } from '../enums';
 import { updateSettings } from '../../settings/service';
 
 const usePushLayoutUpdater = (pushLayout: boolean) => {
@@ -47,7 +47,7 @@ const useMeetingLayoutUpdater = (
         syncWithPresenterLayout: pushLayout,
         presentationIsOpen,
         isResizing,
-        cameraPosition: position || 'contentTop',
+        cameraPosition: position || CAMERADOCK_POSITION.CONTENT_RIGHT,
         focusedCamera: focusedId || 'none',
         presentationVideoRate: calculatePresentationVideoRate(propagatedCameraDock),
       },
