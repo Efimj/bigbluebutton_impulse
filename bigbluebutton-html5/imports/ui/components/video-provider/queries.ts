@@ -8,6 +8,7 @@ export interface AudioOnlyUsersResponse {
       lastFloorTime: string;
       joined: boolean;
       listenOnly: boolean;
+      listenOnlyInputDevice?: boolean;
       userId: string;
       deafened: boolean;
     };
@@ -24,6 +25,7 @@ export const VIDEO_STREAMS_SUBSCRIPTION = gql`
       meetingId
       streamId
       user {
+        extId
         name
         userId
         nameSortable
@@ -39,12 +41,29 @@ export const VIDEO_STREAMS_SUBSCRIPTION = gql`
         raiseHand
         isModerator
         reactionEmoji
+        locked
+        authed
+        mobile
+        guest
+        bot
+        isDialIn
+        loggedOut
+        whiteboardWriteAccess
+        cameras {
+          streamId
+        }
+        userLockSettings {
+          disablePublicChat
+          disableCamera
+          disableMicrophone
+        }
       }
       voice {
         floor
         lastFloorTime
         joined
         listenOnly
+        listenOnlyInputDevice
         userId
         deafened
       }
@@ -80,6 +99,7 @@ export const GRID_USERS_SUBSCRIPTION = gql`
       },
     ) {
       meetingId
+      extId
       name
       userId
       nameSortable
@@ -95,9 +115,27 @@ export const GRID_USERS_SUBSCRIPTION = gql`
       raiseHand
       isModerator
       reactionEmoji
+      locked
+      authed
+      mobile
+      guest
+      bot
+      isDialIn
+      loggedOut
+      whiteboardWriteAccess
+      cameras {
+        streamId
+      }
+      userLockSettings {
+        disablePublicChat
+        disableCamera
+        disableMicrophone
+      }
       voice {
         joined
         listenOnly
+        listenOnlyInputDevice
+        deafened
         userId
       }
     }
@@ -120,6 +158,7 @@ export const AUDIO_ONLY_USERS_SUBSCRIPTION = gql`
       },
     ) {
       meetingId
+      extId
       name
       userId
       nameSortable
@@ -135,11 +174,28 @@ export const AUDIO_ONLY_USERS_SUBSCRIPTION = gql`
       raiseHand
       isModerator
       reactionEmoji
+      locked
+      authed
+      mobile
+      guest
+      bot
+      isDialIn
+      loggedOut
+      whiteboardWriteAccess
+      cameras {
+        streamId
+      }
+      userLockSettings {
+        disablePublicChat
+        disableCamera
+        disableMicrophone
+      }
       voice {
         floor
         lastFloorTime
         joined
         listenOnly
+        listenOnlyInputDevice
         userId
         deafened
       }

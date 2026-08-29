@@ -85,7 +85,7 @@ const MenuWrapper = styled.div`
 
 const MenuWrapperSqueezed = styled.div`
   position: absolute;
-  right: 0;
+  inset-inline-end: 2.5rem;
   top: 0;
 `;
 

@@ -1,6 +1,7 @@
 import { VIDEO_TYPES } from './enums';
 
 export type User = {
+  extId?: string;
   userId: string;
   pinned: boolean;
   pinnedTime: string | null;
@@ -16,11 +17,27 @@ export type User = {
   raiseHand: boolean;
   isModerator: boolean;
   reactionEmoji: string;
+  locked?: boolean;
+  authed?: boolean;
+  mobile?: boolean;
+  guest?: boolean;
+  bot?: boolean;
+  isDialIn?: boolean;
+  loggedOut?: boolean;
+  whiteboardWriteAccess?: boolean;
+  cameras?: Array<{ streamId: string }>;
+  userLockSettings?: {
+    disablePublicChat: boolean;
+    disableCamera: boolean;
+    disableMicrophone: boolean;
+  };
 }
 
 interface GridVoice {
   joined: boolean;
   listenOnly: boolean;
+  listenOnlyInputDevice?: boolean;
+  deafened?: boolean;
   userId: string;
 }
 

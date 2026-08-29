@@ -23,6 +23,8 @@ import { VIDEO_TYPES } from '/imports/ui/components/video-provider/enums';
 import PluginButtonContainer from '../../../plugins/plugin-button/container';
 import { UserCameraHelperAreas } from '../../../plugins-engine/extensible-areas/components/user-camera-helper/types';
 import PluginMenuActions from './plugin-menu-actions/component';
+import UserManagementMenu from './user-management-menu/component';
+import { User as MeetingUser } from '/imports/ui/Types/user';
 
 const intlMessages = defineMessages({
   disableDesc: {
@@ -186,6 +188,18 @@ const VideoListItem: React.FC<VideoListItemProps> = (props) => {
     raiseHand: u.raiseHand,
     isModerator: u.isModerator,
     reactionEmoji: u.reactionEmoji,
+    extId: u.extId,
+    locked: u.locked,
+    authed: u.authed,
+    mobile: u.mobile,
+    guest: u.guest,
+    bot: u.bot,
+    isDialIn: u.isDialIn,
+    loggedOut: u.loggedOut,
+    whiteboardWriteAccess: u.whiteboardWriteAccess,
+    cameras: u.cameras,
+    userLockSettings: u.userLockSettings,
+    voice: u.voice,
   }));
 
   let user;
@@ -212,6 +226,13 @@ const VideoListItem: React.FC<VideoListItemProps> = (props) => {
       break;
     }
   }
+
+  const managementUser = {
+    ...user,
+    voice: stream.type !== VIDEO_TYPES.CONNECTING ? stream.voice : currentUser?.voice,
+    cameras: user?.cameras ?? [],
+    userLockSettings: user?.userLockSettings,
+  } as Partial<MeetingUser>;
 
   const onStreamStateChange = (e: CustomEvent) => {
     const { streamState } = e.detail;
@@ -528,6 +549,12 @@ const VideoListItem: React.FC<VideoListItemProps> = (props) => {
           {intl.formatMessage(intlMessages.disableDesc)}
         </Styled.VideoDisabled>
       )}
+
+      <UserManagementMenu
+        subjectUser={managementUser}
+        isFullscreenContext={isFullscreenContext}
+        videoContainer={videoContainer}
+      />
 
       {isVideoSqueezed ? renderSqueezedButton() : renderDefaultButtons()}
       {isVideoSqueezed && isHovered && renderSqueezedName()}
