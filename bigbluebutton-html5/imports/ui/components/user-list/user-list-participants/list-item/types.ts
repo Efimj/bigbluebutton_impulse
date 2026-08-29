@@ -43,4 +43,5 @@ export interface UserActionPermissions {
   allowedToEjectCameras: boolean | undefined;
   allowedToRemove: boolean | undefined;
   allowedToLowerHand: boolean | undefined;
+  allowedToChangeUserMediaLock: boolean | undefined;
 }

@@ -149,8 +149,11 @@ export const useIsCamSharingLocked = () => {
   const { data: currentUser } = useCurrentUser((u) => ({
     locked: u.locked,
     isModerator: u.isModerator,
+    userLockSettings: u.userLockSettings,
   }));
-  return !!currentUser?.locked && !currentUser.isModerator && disableCam;
+  return !currentUser?.isModerator && (
+    !!currentUser?.userLockSettings?.disableCamera || (!!currentUser?.locked && disableCam)
+  );
 };
 
 // Mirrors the webcam visibility lock enforced in video-provider/container.tsx: when

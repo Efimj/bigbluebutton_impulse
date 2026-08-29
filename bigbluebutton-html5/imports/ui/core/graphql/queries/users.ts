@@ -65,6 +65,8 @@ subscription UserListSubscription($offset: Int!, $limit: Int!, $where: user_bool
     }
     userLockSettings {
       disablePublicChat
+      disableCamera
+      disableMicrophone
     }
   }
 }`;

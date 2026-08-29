@@ -106,8 +106,11 @@ const UserNameWithSubs: React.FC<UserNameWithSubsProps> = ({
   if (subjectUser.bot && LABEL.bot) {
     subs.push(<span key="bbb-bot">{intl.formatMessage(intlMessages.bot)}</span>);
   }
-  if ((subjectUser.locked || subjectUser.userLockSettings?.disablePublicChat)
-      && (subjectUser.userLockSettings?.disablePublicChat || hasActiveLockSettingExcludingPresenterPolicy)
+  const hasIndividualLock = subjectUser.userLockSettings?.disablePublicChat
+    || subjectUser.userLockSettings?.disableCamera
+    || subjectUser.userLockSettings?.disableMicrophone;
+  if ((subjectUser.locked || hasIndividualLock)
+      && (hasIndividualLock || hasActiveLockSettingExcludingPresenterPolicy)
       && !subjectUser.isModerator
   ) {
     subs.push(

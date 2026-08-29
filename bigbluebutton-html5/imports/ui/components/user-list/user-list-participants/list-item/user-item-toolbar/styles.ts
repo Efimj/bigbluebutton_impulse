@@ -14,9 +14,12 @@ const ToolbarContainer = styled.div`
   align-items: center;
 `;
 
-const ToolbarItem = styled.div<{ disabled?: boolean, hasText?: boolean }>`
+const ToolbarItem = styled.div<{ disabled?: boolean, hasText?: boolean, $active?: boolean }>`
   cursor: pointer;
-  color: ${({ hasText }) => (hasText ? colorPrimary : colorGrayIcons)};
+  color: ${({ hasText, $active }) => ((hasText || $active) ? colorPrimary : colorGrayIcons)};
+  padding: 0.125rem;
+  border-radius: 50%;
+  background-color: ${({ $active }) => ($active ? 'rgba(15, 118, 210, 0.16)' : 'transparent')};
 
   line-height: 1;
 

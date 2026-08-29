@@ -13,6 +13,7 @@ const lockContextContainer = (component) => (props) => {
   const { data: user } = useCurrentUser((u) => ({
     role: u.role,
     locked: u.locked,
+    userLockSettings: u.userLockSettings,
   }));
 
   const ROLE_MODERATOR = window.meetingClientSettings.public.user.role_moderator;
@@ -21,8 +22,10 @@ const lockContextContainer = (component) => (props) => {
 
   lockSetting.isLocked = userIsLocked;
   lockSetting.lockSettings = lockSettings;
-  lockSetting.userLocks.userWebcam = (userIsLocked && lockSettings?.disableCam) || false;
-  lockSetting.userLocks.userMic = (userIsLocked && lockSettings?.disableMic) || false;
+  lockSetting.userLocks.userWebcam = user?.userLockSettings?.disableCamera
+    || (userIsLocked && lockSettings?.disableCam) || false;
+  lockSetting.userLocks.userMic = user?.userLockSettings?.disableMicrophone
+    || (userIsLocked && lockSettings?.disableMic) || false;
   lockSetting.userLocks.userNotes = (userIsLocked && lockSettings?.disableNotes) || false;
   lockSetting.userLocks.userPrivateChat = (userIsLocked
     && lockSettings?.disablePrivateChat) || false;

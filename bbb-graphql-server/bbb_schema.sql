@@ -722,7 +722,9 @@ join meeting_welcome w USING("meetingId");
 create unlogged table "user_lockSettings" (
     "meetingId"             varchar(100),
     "userId"                varchar(50),
-    "disablePublicChat"     boolean,
+    "disablePublicChat"     boolean NOT NULL DEFAULT false,
+    "disableCamera"         boolean NOT NULL DEFAULT false,
+    "disableMicrophone"     boolean NOT NULL DEFAULT false,
     CONSTRAINT "user_lockSettings_pkey" PRIMARY KEY ("meetingId", "userId"),
     FOREIGN KEY ("meetingId", "userId") REFERENCES "user"("meetingId","userId") ON DELETE CASCADE
 );
@@ -732,7 +734,9 @@ CREATE VIEW "v_user_lockSettings" as
 SELECT
 l."meetingId",
 l."userId",
-case when "user"."isModerator" then false else l."disablePublicChat" end "disablePublicChat"
+case when "user"."isModerator" then false else l."disablePublicChat" end "disablePublicChat",
+case when "user"."isModerator" then false else l."disableCamera" end "disableCamera",
+case when "user"."isModerator" then false else l."disableMicrophone" end "disableMicrophone"
 FROM "user_lockSettings" l
 join "user" on "user"."meetingId" = l."meetingId" and "user"."userId" = l."userId";
 

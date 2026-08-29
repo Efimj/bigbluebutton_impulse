@@ -751,6 +751,8 @@ type Mutation {
   userSetUserLockSettings(
     userId: String!
     disablePubChat: Boolean!
+    disableCamera: Boolean
+    disableMicrophone: Boolean
   ): Boolean
 }
 

@@ -357,14 +357,26 @@ case class ChangeUserLockSettingsInMeetingCmdMsg(
     header: BbbClientMsgHeader,
     body:   ChangeUserLockSettingsInMeetingCmdMsgBody
 ) extends StandardMsg
-case class ChangeUserLockSettingsInMeetingCmdMsgBody(userId: String, disablePubChat: Boolean, setBy: String)
+case class ChangeUserLockSettingsInMeetingCmdMsgBody(
+    userId:            String,
+    disablePubChat:    Boolean,
+    setBy:             String,
+    disableCamera:     Option[Boolean] = None,
+    disableMicrophone: Option[Boolean] = None
+)
 
 object UserLockSettingsInMeetingChangedEvtMsg { val NAME = "UserLockSettingsInMeetingChangedEvtMsg" }
 case class UserLockSettingsInMeetingChangedEvtMsg(
     header: BbbClientMsgHeader,
     body:   UserLockSettingsInMeetingChangedEvtMsgBody
 ) extends BbbCoreMsg
-case class UserLockSettingsInMeetingChangedEvtMsgBody(userId: String, disablePubChat: Boolean, setBy: String)
+case class UserLockSettingsInMeetingChangedEvtMsgBody(
+    userId:            String,
+    disablePubChat:    Boolean,
+    disableCamera:     Boolean,
+    disableMicrophone: Boolean,
+    setBy:             String
+)
 
 /**
  * Sent by client to set lock setting.

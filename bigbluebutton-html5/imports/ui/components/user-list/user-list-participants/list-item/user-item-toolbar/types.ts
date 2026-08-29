@@ -10,6 +10,9 @@ export interface ToolbarEntry {
   label: string;
   key: string;
   disabled?: boolean;
+  active?: boolean;
+  iconRight?: PluginSdk.PluginIconType;
+  customStyles?: React.CSSProperties;
 }
 
 export interface UserItemToolbarProps {

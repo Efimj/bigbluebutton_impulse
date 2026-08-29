@@ -10,6 +10,7 @@ const useLockContext = () => {
   const { data: user } = useCurrentUser((u) => ({
     role: u.role,
     locked: u.locked,
+    userLockSettings: u.userLockSettings,
   }));
 
   return useMemo(() => {
@@ -25,8 +26,10 @@ const useLockContext = () => {
       lockSettings: lockSettings || base.lockSettings,
       userLocks: {
         ...base.userLocks,
-        userWebcam: Boolean(userIsLocked && lockSettings?.disableCam),
-        userMic: Boolean(userIsLocked && lockSettings?.disableMic),
+        userWebcam: Boolean(user?.userLockSettings?.disableCamera
+          || (userIsLocked && lockSettings?.disableCam)),
+        userMic: Boolean(user?.userLockSettings?.disableMicrophone
+          || (userIsLocked && lockSettings?.disableMic)),
         userNotes: Boolean(userIsLocked && lockSettings?.disableNotes),
         userPrivateChat: Boolean(userIsLocked && lockSettings?.disablePrivateChat),
         userPublicChat: Boolean(userIsLocked && lockSettings?.disablePublicChat),
@@ -34,7 +37,7 @@ const useLockContext = () => {
         hideViewersAnnotation: Boolean(userIsLocked && lockSettings?.hideViewersAnnotation),
       },
     };
-  }, [meeting?.lockSettings, user?.role, user?.locked]);
+  }, [meeting?.lockSettings, user?.role, user?.locked, user?.userLockSettings]);
 };
 
 export default useLockContext;

@@ -108,6 +108,22 @@ export const SET_USER_CHAT_LOCKED = gql`
   }
 `;
 
+export const SET_USER_MEDIA_LOCKED = gql`
+  mutation UserSetMediaLocked(
+    $userId: String!,
+    $disablePubChat: Boolean!,
+    $disableCamera: Boolean!,
+    $disableMicrophone: Boolean!,
+  ) {
+    userSetUserLockSettings(
+      userId: $userId,
+      disablePubChat: $disablePubChat,
+      disableCamera: $disableCamera,
+      disableMicrophone: $disableMicrophone,
+    )
+  }
+`;
+
 export const SWAP_SCREENSHARE = gql`
   mutation($screenshareAsContent: Boolean!) {
    meetingLayoutSetScreenshareAsContent(screenshareAsContent: $screenshareAsContent)
@@ -127,4 +143,5 @@ export default {
   SET_SPEECH_LOCALE,
   USER_LEAVE_MEETING,
   SET_USER_CHAT_LOCKED,
+  SET_USER_MEDIA_LOCKED,
 };

@@ -49,6 +49,8 @@ export interface Voice {
 
 export interface userLockSettings {
   disablePublicChat: boolean;
+  disableCamera: boolean;
+  disableMicrophone: boolean;
 }
 
 export interface sessionCurrent {

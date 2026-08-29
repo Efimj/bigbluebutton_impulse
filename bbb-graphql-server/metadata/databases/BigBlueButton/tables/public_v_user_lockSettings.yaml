@@ -10,6 +10,8 @@ select_permissions:
   - role: bbb_client
     permission:
       columns:
+        - disableCamera
+        - disableMicrophone
         - disablePublicChat
       filter:
         meetingId:
@@ -20,6 +22,8 @@ select_permissions:
   - role: bbb_client_not_in_meeting
     permission:
       columns:
+        - disableCamera
+        - disableMicrophone
         - disablePublicChat
       filter:
         _and:

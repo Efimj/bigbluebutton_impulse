@@ -34,9 +34,10 @@ object LockSettingsUtil {
   )(implicit context: ActorContext): Unit = {
     VoiceUsers.findAll(liveMeeting.voiceUsers) foreach { vu =>
       Users2x.findWithIntId(liveMeeting.users2x, vu.intId).foreach { user =>
-        if (user.role == Roles.VIEWER_ROLE && !vu.listenOnly && user.locked) {
+        val microphoneLocked = user.userLockSettings.disableMicrophone || (user.locked && disableMic)
+        if (user.role == Roles.VIEWER_ROLE && !vu.listenOnly && (user.locked || user.userLockSettings.disableMicrophone)) {
           // Apply lock setting to users who are not listen only. (ralam dec 6, 2019)
-          muteUserInVoiceConf(liveMeeting, outGW, vu, disableMic)
+          muteUserInVoiceConf(liveMeeting, outGW, vu, microphoneLocked)
         }
 
         // Make sure listen only users are muted. (ralam dec 6, 2019)
@@ -61,18 +62,14 @@ object LockSettingsUtil {
       outGW:       OutMsgRouter
   )(implicit context: ActorContext): Unit = {
 
-    val permissions = MeetingStatus2x.getPermissions(liveMeeting.status)
-    if (permissions.disableMic) {
-      Users2x.findWithIntId(liveMeeting.users2x, voiceUser.intId).foreach { user =>
-        if (user.role == Roles.VIEWER_ROLE && user.locked) {
-          // Make sure that user is muted when lock settings has mic disabled. (ralam dec 6, 2019
-          if (!voiceUser.muted) {
-            muteUserInVoiceConf(liveMeeting, outGW, voiceUser, true)
-          }
+    Users2x.findWithIntId(liveMeeting.users2x, voiceUser.intId).foreach { user =>
+      if (isMicrophoneSharingLocked(user, liveMeeting)) {
+        if (!voiceUser.muted) {
+          muteUserInVoiceConf(liveMeeting, outGW, voiceUser, true)
         }
+      } else {
+        enforceListenOnlyUserIsMuted(voiceUser.intId, liveMeeting, outGW)
       }
-    } else {
-      enforceListenOnlyUserIsMuted(voiceUser.intId, liveMeeting, outGW)
     }
   }
 
@@ -93,13 +90,15 @@ object LockSettingsUtil {
   def isMicrophoneSharingLocked(user: UserState, liveMeeting: LiveMeeting): Boolean = {
     val permissions = MeetingStatus2x.getPermissions(liveMeeting.status)
 
-    user.role == Roles.VIEWER_ROLE && user.locked && permissions.disableMic
+    user.role == Roles.VIEWER_ROLE &&
+      (user.userLockSettings.disableMicrophone || (user.locked && permissions.disableMic))
   }
 
   def isCameraBroadcastLocked(user: UserState, liveMeeting: LiveMeeting): Boolean = {
     val permissions = MeetingStatus2x.getPermissions(liveMeeting.status)
 
-    user.role == Roles.VIEWER_ROLE && user.locked && permissions.disableCam
+    user.role == Roles.VIEWER_ROLE &&
+      (user.userLockSettings.disableCamera || (user.locked && permissions.disableCam))
   }
 
   def isCameraSubscribeLocked(

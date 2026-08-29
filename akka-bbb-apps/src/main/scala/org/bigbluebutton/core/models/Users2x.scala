@@ -449,7 +449,11 @@ case class OldPresenter(userId: String, changedPresenterOn: Long)
 
 case class UserLeftFlag(left: Boolean, leftOn: Long)
 
-case class UserLockSettings(disablePublicChat: Boolean = false)
+case class UserLockSettings(
+    disablePublicChat: Boolean = false,
+    disableCamera:     Boolean = false,
+    disableMicrophone: Boolean = false
+)
 
 case class UserState(
     intId:                 String,

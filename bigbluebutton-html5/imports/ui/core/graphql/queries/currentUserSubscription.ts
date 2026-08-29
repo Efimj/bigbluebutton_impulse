@@ -71,6 +71,8 @@ subscription userCurrentSubscription {
     }
     userLockSettings {
       disablePublicChat
+      disableCamera
+      disableMicrophone
     }
     sessionCurrent {
       enforceLayout

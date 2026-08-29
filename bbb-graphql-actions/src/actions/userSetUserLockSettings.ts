@@ -7,6 +7,8 @@ export default function buildRedisMessage(sessionVariables: Record<string, unkno
       [
         {name: 'userId', type: 'string', required: true},
         {name: 'disablePubChat', type: 'boolean', required: true},
+        {name: 'disableCamera', type: 'boolean', required: false},
+        {name: 'disableMicrophone', type: 'boolean', required: false},
       ]
   )
 
@@ -27,6 +29,8 @@ export default function buildRedisMessage(sessionVariables: Record<string, unkno
     setBy: routing.userId,
     userId: input.userId,
     disablePubChat: input.disablePubChat,
+    disableCamera: input.disableCamera,
+    disableMicrophone: input.disableMicrophone,
   };
 
   return { eventName, routing, header, body };

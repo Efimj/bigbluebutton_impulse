@@ -122,6 +122,22 @@ const intlMessages = defineMessages({
     id: 'app.userList.menu.ejectUserCameras.label',
     description: 'label to eject user cameras',
   },
+  lockUserCamera: {
+    id: 'app.userList.menu.lockUserCamera.label',
+    description: 'Prevent this user from enabling their camera',
+  },
+  unlockUserCamera: {
+    id: 'app.userList.menu.unlockUserCamera.label',
+    description: 'Allow this user to enable their camera',
+  },
+  lockUserMicrophone: {
+    id: 'app.userList.menu.lockUserMicrophone.label',
+    description: 'Prevent this user from enabling their microphone',
+  },
+  unlockUserMicrophone: {
+    id: 'app.userList.menu.unlockUserMicrophone.label',
+    description: 'Allow this user to enable their microphone',
+  },
   lowerUserHand: {
     id: 'app.statusNotifier.lowerHandDescOneUser',
     description: 'Label for lowering a user raised hand',
@@ -182,6 +198,7 @@ export const generateActionsPermissions = (
     && isMuted
     && (amISubjectUser || usersPolicies?.allowModsToUnmuteUsers)
     && !lockSettings?.disableMic
+    && !subjectUser.userLockSettings?.disableMicrophone
     && (type === 'participant' || type === 'raised-hand');
 
   const allowedToChangeWhiteboardAccess = currentUserIsPresenter
@@ -229,6 +246,13 @@ export const generateActionsPermissions = (
     && subjectUser.cameras.length > 0
     && (type === 'participant' || type === 'raised-hand');
 
+  const allowedToChangeUserMediaLock = amIModerator
+    && !amISubjectUser
+    && !isSubjectUserModerator
+    && !isSubjectUserBot
+    && !isDialInUser
+    && (type === 'participant' || type === 'raised-hand');
+
   const allowedToLowerHand = subjectUser.raiseHand
     && (amIModerator
     || amISubjectUser)
@@ -246,6 +270,7 @@ export const generateActionsPermissions = (
     allowedToEjectCameras,
     allowedToRemove,
     allowedToLowerHand,
+    allowedToChangeUserMediaLock,
   };
 };
 
@@ -338,6 +363,7 @@ export const createToolbarOptions = (
   userEjectCameras: MutationFunction,
   openConfirmationModal: () => void,
   setRaiseHand: MutationFunction,
+  setUserMediaLocked: MutationFunction,
 ) => {
   const MODERATOR_ROLE = window.meetingClientSettings.public.user.role_moderator;
   const VIEWER_ROLE = window.meetingClientSettings.public.user.role_viewer;
@@ -353,6 +379,7 @@ export const createToolbarOptions = (
     allowedToEjectCameras,
     allowedToRemove,
     allowedToLowerHand,
+    allowedToChangeUserMediaLock,
   } = actionsPermitions;
 
   const subjectUserInAudio = user.voice?.joined && !user.voice?.deafened;
@@ -408,6 +435,18 @@ export const createToolbarOptions = (
     };
   };
   const audioStateOption = getAudioStateOption();
+  const cameraLocked = user.userLockSettings?.disableCamera ?? false;
+  const microphoneLocked = user.userLockSettings?.disableMicrophone ?? false;
+  const updateMediaLocks = (disableCamera: boolean, disableMicrophone: boolean) => {
+    setUserMediaLocked({
+      variables: {
+        userId: user.userId,
+        disablePubChat: user.userLockSettings?.disablePublicChat ?? false,
+        disableCamera,
+        disableMicrophone,
+      },
+    });
+  };
 
   return {
     pinnedToolbarOptions: [
@@ -439,6 +478,18 @@ export const createToolbarOptions = (
       },
       ...(audioStateOption ? [{ ...audioStateOption, allowed: true }] : []),
       {
+        allowed: allowedToChangeUserMediaLock,
+        key: 'toggleCameraLock',
+        label: intl.formatMessage(
+          cameraLocked ? intlMessages.unlockUserCamera : intlMessages.lockUserCamera,
+          { userName: user.name },
+        ),
+        icon: cameraLocked ? 'video' : 'video_off',
+        onClick: () => updateMediaLocks(!cameraLocked, microphoneLocked),
+        dataTest: cameraLocked ? 'allowUserCamera' : 'disableUserCamera',
+        active: cameraLocked,
+      },
+      {
         allowed: allowedToChangeWhiteboardAccess && !!pageId,
         key: 'changeWhiteboardAccess',
         label: whiteboardAccess
@@ -467,6 +518,32 @@ export const createToolbarOptions = (
         },
         icon: 'presentation',
         dataTest: isMe(user.userId) ? 'takePresenter' : 'makePresenter',
+      },
+      {
+        allowed: allowedToChangeUserMediaLock,
+        key: 'toggleCameraLockMenu',
+        label: intl.formatMessage(
+          cameraLocked ? intlMessages.unlockUserCamera : intlMessages.lockUserCamera,
+          { userName: user.name },
+        ),
+        onClick: () => updateMediaLocks(!cameraLocked, microphoneLocked),
+        icon: cameraLocked ? 'video' : 'video_off',
+        iconRight: cameraLocked ? 'check' : undefined,
+        customStyles: cameraLocked ? { backgroundColor: 'rgba(15, 118, 210, 0.16)' } : undefined,
+        dataTest: cameraLocked ? 'allowUserCameraMenu' : 'disableUserCameraMenu',
+      },
+      {
+        allowed: allowedToChangeUserMediaLock,
+        key: 'toggleMicrophoneLockMenu',
+        label: intl.formatMessage(
+          microphoneLocked ? intlMessages.unlockUserMicrophone : intlMessages.lockUserMicrophone,
+          { userName: user.name },
+        ),
+        onClick: () => updateMediaLocks(cameraLocked, !microphoneLocked),
+        icon: microphoneLocked ? 'unmute' : 'mute',
+        iconRight: microphoneLocked ? 'check' : undefined,
+        customStyles: microphoneLocked ? { backgroundColor: 'rgba(15, 118, 210, 0.16)' } : undefined,
+        dataTest: microphoneLocked ? 'allowUserMicrophoneMenu' : 'disableUserMicrophoneMenu',
       },
       {
         allowed: allowedToPromote,

@@ -79,6 +79,8 @@ export const userComparator = (a?: Partial<User>, b?: Partial<User>): boolean =>
   const auls = a.userLockSettings;
   const buls = b.userLockSettings;
   if ((auls?.disablePublicChat ?? false) !== (buls?.disablePublicChat ?? false)) return false;
+  if ((auls?.disableCamera ?? false) !== (buls?.disableCamera ?? false)) return false;
+  if ((auls?.disableMicrophone ?? false) !== (buls?.disableMicrophone ?? false)) return false;
 
   const aSession = a.sessionCurrent;
   const bSession = b.sessionCurrent;

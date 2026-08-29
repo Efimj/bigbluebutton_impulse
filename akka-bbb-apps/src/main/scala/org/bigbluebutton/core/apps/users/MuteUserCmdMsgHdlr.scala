@@ -1,11 +1,11 @@
 package org.bigbluebutton.core.apps.users
 
+import org.bigbluebutton.LockSettingsUtil
 import org.bigbluebutton.common2.msgs.MuteUserCmdMsg
 import org.bigbluebutton.core.apps.{ PermissionCheck, RightsManagementTrait }
 import org.bigbluebutton.core.apps.voice.VoiceApp
 import org.bigbluebutton.core.models.{ Roles, Users2x, VoiceUsers }
 import org.bigbluebutton.core.running.{ LiveMeeting, OutMsgRouter }
-import org.bigbluebutton.core2.MeetingStatus2x
 
 trait MuteUserCmdMsgHdlr extends RightsManagementTrait {
   this: UsersApp =>
@@ -30,11 +30,14 @@ trait MuteUserCmdMsgHdlr extends RightsManagementTrait {
       log.info("Received mute user request. meetingId=" + meetingId + " userId="
         + msg.body.userId)
 
-      val permissions = MeetingStatus2x.getPermissions(liveMeeting.status)
       for {
         requester <- Users2x.findWithIntId(
           liveMeeting.users2x,
           msg.header.userId
+        )
+        targetUser <- Users2x.findWithIntId(
+          liveMeeting.users2x,
+          msg.body.userId
         )
         u <- VoiceUsers.findWithIntId(
           liveMeeting.voiceUsers,
@@ -42,12 +45,14 @@ trait MuteUserCmdMsgHdlr extends RightsManagementTrait {
         )
       } yield {
 
-        if (requester.role != Roles.MODERATOR_ROLE
-          && permissions.disableMic
-          && requester.locked
-          && u.muted &&
-          msg.body.userId == msg.header.userId) {
-          // unmuting self while not moderator and mic disabled. Do not allow.
+        val targetHasIndividualMicrophoneLock = targetUser.role == Roles.VIEWER_ROLE &&
+          targetUser.userLockSettings.disableMicrophone
+        val requesterCannotUnmuteSelf = requester.role != Roles.MODERATOR_ROLE &&
+          msg.body.userId == msg.header.userId &&
+          LockSettingsUtil.isMicrophoneSharingLocked(requester, liveMeeting)
+
+        if (!msg.body.mute && u.muted && (targetHasIndividualMicrophoneLock || requesterCannotUnmuteSelf)) {
+          // A user-level microphone lock must be removed before anyone can unmute this user.
         } else {
           if (u.muted != msg.body.mute) {
             log.info("Send mute user request. meetingId=" + meetingId + " userId=" + u.intId + " user=" + u)

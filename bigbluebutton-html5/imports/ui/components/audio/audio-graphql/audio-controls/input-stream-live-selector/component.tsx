@@ -249,6 +249,7 @@ const InputStreamLiveSelectorContainer: React.FC<InputStreamLiveSelectorContaine
       return {
         presenter: u.presenter,
         isModerator: u.isModerator,
+        userLockSettings: u.userLockSettings,
       };
     }
 
@@ -258,6 +259,7 @@ const InputStreamLiveSelectorContainer: React.FC<InputStreamLiveSelectorContaine
       isModerator: u.isModerator,
       locked: u?.locked ?? false,
       away: u?.away,
+      userLockSettings: u.userLockSettings,
       voice: {
         joined: u?.voice?.joined ?? false,
         deafened: u?.voice?.deafened ?? false,
@@ -301,18 +303,21 @@ const InputStreamLiveSelectorContainer: React.FC<InputStreamLiveSelectorContaine
     AudioManager.outputDevices = devices;
   };
   const inAudio = (currentUser?.voice?.joined && !currentUser?.voice?.deafened) ?? false;
+  const isAudioLocked = (!currentUser?.isModerator && (
+    currentUser?.userLockSettings?.disableMicrophone
+      || (currentUser?.locked && currentMeeting?.lockSettings?.disableMic)
+  )) ?? false;
 
   return (
     <InputStreamLiveSelector
       isPresenter={currentUser?.presenter ?? false}
       isModerator={currentUser?.isModerator ?? false}
-      isAudioLocked={(!currentUser?.isModerator && currentUser?.locked
-        && currentMeeting?.lockSettings?.disableMic) ?? false}
+      isAudioLocked={isAudioLocked}
       listenOnly={currentUser?.voice?.listenOnly ?? false}
       muted={muted}
       talking={talking}
       inAudio={inAudio}
-      showMute={(inAudio && !currentMeeting?.lockSettings?.disableMic) ?? false}
+      showMute={inAudio && !isAudioLocked}
       isConnected={isConnected}
       disabled={isConnecting || isHangingUp}
       inputDeviceId={inputDeviceId}
