@@ -152,6 +152,18 @@ const intlMessages = defineMessages({
     id: 'app.notes.blocknote.maxCharCountError',
     description: 'Error message for when number of typed characters exceeds the maximum',
   },
+  dismiss: {
+    id: 'app.notes.blocknote.dismiss',
+    description: 'Dismiss shared notes error button label',
+  },
+  retry: {
+    id: 'app.notes.blocknote.retry',
+    description: 'Retry shared notes connection button label',
+  },
+  connectionClosed: {
+    id: 'app.notes.blocknote.connectionClosed',
+    description: 'Shared notes connection closed message',
+  },
 });
 
 // Mantine's Menu defaults to trapFocus:true, trapping Tab inside open dropdowns.
@@ -491,7 +503,7 @@ function BlockNoteApp(props: BlockNoteAppProps): React.ReactElement {
         <Styled.WarningNotificationContainer data-test="noteSizeError">
           <Styled.WaringMessage>{notificationErrorMessage}</Styled.WaringMessage>
           <Button
-            label="Dismiss"
+            label={intl.formatMessage(intlMessages.dismiss)}
             onClick={() => setNotificationErrorMessage(null)}
             color="primary"
             size="sm"
@@ -548,6 +560,7 @@ interface BlockNoteContainerProps {
 }
 
 function BlockNoteContainer({ isVisible }: BlockNoteContainerProps): React.ReactElement {
+  const intl = useIntl();
   const {
     error, isAuthenticating, hocuspocusProvider, connectionClosed, handleRetry, isSynced,
   } = useHocuspocusProvider();
@@ -590,7 +603,7 @@ function BlockNoteContainer({ isVisible }: BlockNoteContainerProps): React.React
         <Styled.WarningNotificationContainer data-test="notesError">
           <Styled.ErrorMessage>{error}</Styled.ErrorMessage>
           <Button
-            label="Retry"
+            label={intl.formatMessage(intlMessages.retry)}
             onClick={handleRetry}
             color="primary"
             size="md"
@@ -600,9 +613,11 @@ function BlockNoteContainer({ isVisible }: BlockNoteContainerProps): React.React
       )}
       {(connectionClosed && !hasError) && (
         <Styled.WarningNotificationContainer data-test="notesError">
-          <Styled.WaringMessage>Connection closed.</Styled.WaringMessage>
+          <Styled.WaringMessage>
+            {intl.formatMessage(intlMessages.connectionClosed)}
+          </Styled.WaringMessage>
           <Button
-            label="Retry"
+            label={intl.formatMessage(intlMessages.retry)}
             onClick={handleRetry}
             color="primary"
             size="md"

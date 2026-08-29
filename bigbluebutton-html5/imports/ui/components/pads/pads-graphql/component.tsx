@@ -18,6 +18,10 @@ const intlMessages = defineMessages({
     id: 'app.pads.hint',
     description: 'Label for hint on how to escape iframe',
   },
+  frameTitle: {
+    id: 'app.pads.frameTitle',
+    description: 'Shared notes iframe title',
+  },
 });
 
 interface PadContainerGraphqlProps {
@@ -83,7 +87,7 @@ const PadGraphql: React.FC<PadGraphqlProps> = (props) => {
   return (
     <Styled.Pad>
       <Styled.IFrame
-        title="pad"
+        title={intl.formatMessage(intlMessages.frameTitle)}
         src={padURL}
         aria-describedby="padEscapeHint"
         amIPresenter={amIPresenter}

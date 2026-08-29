@@ -93,6 +93,10 @@ const intlMessages = defineMessages({
     id: 'app.connection-status.lostPackets',
     description: 'Number of lost packets',
   },
+  contentHidden: {
+    id: 'app.connection-status.contentHidden',
+    description: 'Placeholder for visually hidden connection data',
+  },
   audioUploadRate: {
     id: 'app.connection-status.audioUploadRate',
     description: 'Label for audio current upload rate',
@@ -452,7 +456,7 @@ class ConnectionStatusComponent extends PureComponent {
               <div>{`${packetsLost}`}</div>
             </Styled.NetworkData>
             <Styled.NetworkData invisible>
-              <div>Content Hidden</div>
+              <div>{intl.formatMessage(intlMessages.contentHidden)}</div>
               <div>0</div>
             </Styled.NetworkData>
           </Styled.DataColumn>

@@ -1831,5 +1831,15 @@
     "mobileApp.portals.drawerNavigation.button.label": "Portals",
     "mobileApp.portals.addPortalPopup.validation.emptyFields": "Required Fields",
     "mobileApp.portals.addPortalPopup.validation.portalNameAlreadyExists": "Name already in use",
-    "mobileApp.portals.addPortalPopup.validation.urlInvalid": "Error trying to load the page - check URL and network connection"
+    "mobileApp.portals.addPortalPopup.validation.urlInvalid": "Error trying to load the page - check URL and network connection",
+    "app.actionsBar.swapPresentation.swapToScreenshare": "Swap to screen share",
+    "app.actionsBar.swapPresentation.swapToPresentation": "Swap to presentation",
+    "app.notes.blocknote.dismiss": "Dismiss",
+    "app.notes.blocknote.retry": "Retry",
+    "app.notes.blocknote.connectionClosed": "Connection closed.",
+    "app.profileSettings.previousCamera": "Previous camera",
+    "app.profileSettings.nextCamera": "Next camera",
+    "app.connection-status.contentHidden": "Content hidden",
+    "app.pads.frameTitle": "Shared notes",
+    "app.pads.viewingModeTitle": "Shared notes viewing mode"
 }

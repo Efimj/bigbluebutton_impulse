@@ -30,10 +30,6 @@ const intlMessages = defineMessages({
     id: 'app.userList.mobile',
     description: 'Text for identifying mobile user',
   },
-  locked: {
-    id: 'app.userList.locked',
-    description: 'Text for identifying locked user',
-  },
   breakoutRoom: {
     id: 'app.createBreakoutRoom.room',
     description: 'breakout room',
@@ -69,24 +65,11 @@ const getIconComponent = (icon: PluginIconType): React.ReactNode => {
 const UserNameWithSubs: React.FC<UserNameWithSubsProps> = ({
   intl,
   subjectUser,
-  lockSettings,
   userItemsFromPlugin,
 }) => {
   const LABEL = window.meetingClientSettings.public.user.label;
 
   const subs = [];
-
-  const hasActiveLockSettingExcludingPresenterPolicy = !!(lockSettings && (
-    lockSettings.disableCam
-    || lockSettings.disableMic
-    || lockSettings.disablePrivateChat
-    || lockSettings.disablePublicChat
-    || lockSettings.disableNotes
-    || lockSettings.hideUserList
-    || lockSettings.hideViewersCursor
-    || lockSettings.hideViewersAnnotation
-    || lockSettings.webcamsOnlyForModerator
-  ));
 
   // Labels are wrapped in <span> rather than pushed as bare strings: a bare text
   // node rendered as a sibling of element nodes is what browser translators
@@ -105,21 +88,6 @@ const UserNameWithSubs: React.FC<UserNameWithSubsProps> = ({
   }
   if (subjectUser.bot && LABEL.bot) {
     subs.push(<span key="bbb-bot">{intl.formatMessage(intlMessages.bot)}</span>);
-  }
-  const hasIndividualLock = subjectUser.userLockSettings?.disablePublicChat
-    || subjectUser.userLockSettings?.disableCamera
-    || subjectUser.userLockSettings?.disableMicrophone;
-  if ((subjectUser.locked || hasIndividualLock)
-      && (hasIndividualLock || hasActiveLockSettingExcludingPresenterPolicy)
-      && !subjectUser.isModerator
-  ) {
-    subs.push(
-      <span key={uniqueId('lock-')}>
-        <Icon iconName="lock" />
-        &nbsp;
-        {intl.formatMessage(intlMessages.locked)}
-      </span>,
-    );
   }
   if (subjectUser.lastBreakoutRoom?.isUserCurrentlyInRoom) {
     subs.push(

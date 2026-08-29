@@ -108,6 +108,14 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
     id: 'app.profileSettings.addExtraCamera',
     description: 'Add Extra Camera Button Label',
   },
+  previousCamera: {
+    id: 'app.profileSettings.previousCamera',
+    description: 'Previous camera preview button label',
+  },
+  nextCamera: {
+    id: 'app.profileSettings.nextCamera',
+    description: 'Next camera preview button label',
+  },
 });
 
 interface CameraSection {
@@ -593,14 +601,14 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
           {cameraSections.length > 1 && (
           <>
             <Styled.PreviewArrowButton
-              aria-label="Previous camera"
+              aria-label={formatMessage(intlMessages.previousCamera)}
               onClick={() => changePreview(-1)}
               position="left"
             >
               <Styled.ArrowLeftIcon />
             </Styled.PreviewArrowButton>
             <Styled.PreviewArrowButton
-              aria-label="Next camera"
+              aria-label={formatMessage(intlMessages.nextCamera)}
               onClick={() => changePreview(1)}
               position="right"
             >

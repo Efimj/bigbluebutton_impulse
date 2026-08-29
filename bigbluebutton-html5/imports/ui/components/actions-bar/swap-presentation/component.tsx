@@ -1,4 +1,5 @@
 import React from 'react';
+import { defineMessages, useIntl } from 'react-intl';
 import Button from '/imports/ui/components/common/button/component';
 import usePresentationSwap from '../../../core/hooks/usePresentationSwap';
 import useMeeting from '/imports/ui/core/hooks/useMeeting';
@@ -11,7 +12,19 @@ import useCurrentUser from '/imports/ui/core/hooks/useCurrentUser';
 import { listItemBgHover } from '/imports/ui/stylesheets/styled-components/palette';
 import deviceInfo from '/imports/utils/deviceInfo';
 
+const intlMessages = defineMessages({
+  swapToScreenshare: {
+    id: 'app.actionsBar.swapPresentation.swapToScreenshare',
+    description: 'Button label for swapping presentation to screen share',
+  },
+  swapToPresentation: {
+    id: 'app.actionsBar.swapPresentation.swapToPresentation',
+    description: 'Button label for swapping screen share to presentation',
+  },
+});
+
 const SwapPresentationButton = () => {
+  const intl = useIntl();
   const [showScreenShare, swapPresentation] = usePresentationSwap();
 
   const { data: presentationPageData } = useDeduplicatedSubscription<
@@ -43,7 +56,9 @@ const SwapPresentationButton = () => {
         swapPresentation(!showScreenShare);
       }}
       icon={!showScreenShare ? 'presentation' : 'desktop'}
-      label={!showScreenShare ? 'Swap to screenshare' : 'Swap to presentation'}
+      label={intl.formatMessage(!showScreenShare
+        ? intlMessages.swapToScreenshare
+        : intlMessages.swapToPresentation)}
       hideLabel
       circle
       size={deviceInfo.isMobile ? 'md' : 'lg'}

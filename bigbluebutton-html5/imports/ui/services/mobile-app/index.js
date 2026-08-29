@@ -52,15 +52,25 @@ import { fetchStunTurnServers } from '/imports/utils/fetchStunTurnServers';
 
         // Store the promise for each method call
         const promisesHolder = {};
+        const NATIVE_METHOD_TIMEOUT = 20000;
 
         // Call a method in the mobile application, returning a promise for its execution
         function callNativeMethod(method, args=[]) {
             try {
+                if (!window.ReactNativeWebView || typeof window.ReactNativeWebView.postMessage !== 'function') {
+                    throw new Error('React Native bridge is unavailable');
+                }
+
                 const sequence = ++sequenceHolder.sequence;
 
                 return new Promise ( (resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        delete promisesHolder[sequence];
+                        reject(new Error(`Native method ${method} timed out`));
+                    }, NATIVE_METHOD_TIMEOUT);
+
                     promisesHolder[sequence] = {
-                        resolve, reject
+                        resolve, reject, timeoutId
                     };
 
                     window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -71,6 +81,7 @@ import { fetchStunTurnServers } from '/imports/utils/fetchStunTurnServers';
                 } );
             } catch(e) {
                 logger.error(`Error on callNativeMethod ${e.message}`, e);
+                return Promise.reject(e);
             }
         }
 
@@ -79,6 +90,7 @@ import { fetchStunTurnServers } from '/imports/utils/fetchStunTurnServers';
 
             const promise = promisesHolder[sequence];
             if(promise) {
+                clearTimeout(promise.timeoutId);
                 if(isResolve) {
                     promise.resolve( resultOrException );
                     delete promisesHolder[sequence];
@@ -124,7 +136,8 @@ import { fetchStunTurnServers } from '/imports/utils/fetchStunTurnServers';
                     }
                 ).catch(
                     (e) => {
-                        logger.error(`Failure calling native initializeScreenShare`, e.message)
+                        logger.error(`Failure calling native initializeScreenShare`, e.message);
+                        reject(e instanceof Error ? e : new Error(String(e)));
                     }
                 );
             });

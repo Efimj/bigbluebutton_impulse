@@ -177,9 +177,12 @@ const ScreenshareButton = ({
 
   const amIBroadcasting = isScreenBroadcasting && amIPresenter;
   const showButtonForNonPresenters = useShowButtonForNonPresenters();
+  const canCaptureDisplay = !isMobile
+    || isTabletApp
+    || ScreenshareBridgeService.HAS_DISPLAY_MEDIA;
 
   const shouldAllowScreensharing = enabled
-    && (!isMobile || isTabletApp)
+    && canCaptureDisplay
     && (amIPresenter || showButtonForNonPresenters);
 
   const dataTest = isScreenBroadcasting ? 'stopScreenShare' : 'startScreenShare';

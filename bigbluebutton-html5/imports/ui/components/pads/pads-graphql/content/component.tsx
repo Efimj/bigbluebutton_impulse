@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { defineMessages, useIntl } from 'react-intl';
 import { patch } from '@mconf/bbb-diff';
 import Styled from './styles';
 import { GET_PAD_CONTENT_DIFF_STREAM, GetPadContentDiffStreamResponse } from './queries';
 import useDeduplicatedSubscription from '/imports/ui/core/hooks/useDeduplicatedSubscription';
+
+const intlMessages = defineMessages({
+  viewingModeTitle: {
+    id: 'app.pads.viewingModeTitle',
+    description: 'Read-only shared notes iframe title',
+  },
+});
 
 interface PadContentProps {
   content: string;
@@ -18,6 +26,7 @@ const PadContent: React.FC<PadContentProps> = ({
   content,
   isOnMediaArea,
 }) => {
+  const intl = useIntl();
   const contentSplit = content.split('<body>');
   const contentStyle = `
   <body>
@@ -32,7 +41,7 @@ const PadContent: React.FC<PadContentProps> = ({
   return (
     <Styled.Wrapper>
       <Styled.Iframe
-        title="shared notes viewing mode"
+        title={intl.formatMessage(intlMessages.viewingModeTitle)}
         srcDoc={contentWithStyle}
         data-test="sharedNotesViewingMode"
         isOnMediaArea={isOnMediaArea}
