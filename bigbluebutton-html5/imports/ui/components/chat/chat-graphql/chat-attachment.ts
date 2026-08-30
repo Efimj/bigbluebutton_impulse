@@ -55,11 +55,12 @@ export const serializeChatAttachment = (attachment: ChatAttachment) => (
   `${MARKER_PREFIX}${encodeBase64Url(JSON.stringify(attachment))}${MARKER_SUFFIX}`
 );
 
-export const parseChatAttachments = (message: string): ParsedChatAttachments => {
+export const parseChatAttachments = (message: string | null | undefined): ParsedChatAttachments => {
   const attachments: ChatAttachment[] = [];
   const markerLines: string[] = [];
+  const safeMessage = typeof message === 'string' ? message : '';
 
-  message.split(/\r?\n/).forEach((line) => {
+  safeMessage.split(/\r?\n/).forEach((line) => {
     const trimmedLine = line.trim();
     if (!trimmedLine.startsWith(MARKER_PREFIX) || !trimmedLine.endsWith(MARKER_SUFFIX)) return;
     const payload = trimmedLine.slice(MARKER_PREFIX.length, -MARKER_SUFFIX.length);
@@ -77,8 +78,11 @@ export const parseChatAttachments = (message: string): ParsedChatAttachments => 
   return { attachments, markerLines };
 };
 
-export const removeAttachmentMarkersFromHtml = (html: string, markerLines: string[]) => {
-  let result = html;
+export const removeAttachmentMarkersFromHtml = (
+  html: string | null | undefined,
+  markerLines: string[],
+) => {
+  let result = typeof html === 'string' ? html : '';
   markerLines.forEach((marker) => {
     result = result.split(marker).join('');
   });
@@ -88,7 +92,9 @@ export const removeAttachmentMarkersFromHtml = (html: string, markerLines: strin
     .trim();
 };
 
-export const stripAllAttachmentMarkersFromHtml = (html: string) => html
+export const stripAllAttachmentMarkersFromHtml = (html: string | null | undefined) => (
+  typeof html === 'string' ? html : ''
+)
   .replace(/\[\[bbb-chat-attachment:v1:[A-Za-z0-9_-]+\]\]/g, '')
   .replace(/<p>\s*<\/p>/gi, '')
   .replace(/(?:<br\s*\/?>(?:\s*)){2,}$/gi, '')

@@ -749,6 +749,7 @@ const ChatMessage = React.forwardRef<ChatMessageRef, ChatMessageProps>(({
             : (
               <ChatMessageTextContent
                 text={message.messageAsHtml}
+                rawText={message.message}
               />
             ),
         };
