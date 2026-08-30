@@ -99,7 +99,6 @@ interface VideoListProps {
   onVideoItemMount: (stream: string, video: HTMLVideoElement) => void;
   onVideoItemUnmount: (stream: string) => void;
   onVirtualBgDrop: (stream: string, type: string, name: string, data: string) => Promise<unknown>;
-  gridSize: number;
 }
 
 interface VideoListState {
@@ -336,22 +335,16 @@ class VideoList extends Component<VideoListProps, VideoListState> {
       cameraDock,
       layoutContextDispatch,
       isGridEnabled,
-      gridSize,
       overflowCount,
     } = this.props;
     const visibleStreams = streams.filter(
       (item) => item.type === VIDEO_TYPES.GRID || !('render' in item) || item.render !== false,
     );
-    const videoCount = visibleStreams.filter((item) => item.type !== VIDEO_TYPES.GRID).length;
-    const hasGridItems = visibleStreams.length > videoCount;
     const overflowTileShown = isGridEnabled && overflowCount > 0;
-    // "grid == page": cameras always get their slots, so capacity grows to the
-    // page when cameras alone meet/exceed the grid size. The overflow tile
-    // consumes an extra slot only when there is no avatar for it to replace.
-    let numItems = isGridEnabled
-      ? Math.min(Math.max(gridSize, videoCount), visibleStreams.length)
-      : visibleStreams.length;
-    if (overflowTileShown && !hasGridItems) numItems += 1;
+    // Every mounted participant gets a real cell in the Cameras container. The
+    // grid algorithm shrinks cells to fit instead of replacing users with +N.
+    let numItems = visibleStreams.length;
+    if (overflowTileShown) numItems += 1;
 
     if (numItems < 1 || !this.canvas || !this.grid) {
       return;
