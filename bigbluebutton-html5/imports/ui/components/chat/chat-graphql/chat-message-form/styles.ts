@@ -37,6 +37,8 @@ const Form = styled.form<FormProps>`
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
   border-radius: 0.75rem;
 `;
 
@@ -89,6 +91,9 @@ const RemoveAttachmentButton = styled.button`
 
 const Input = styled(TextareaAutosize)`
   flex: 1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: transparent;
   background-clip: padding-box;
   margin: 0px;
@@ -231,7 +236,9 @@ const InputWrapper = styled.div`
   display: flex;
   flex-direction: row;
   flex-grow: 1;
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
   z-index: 0;
   border-radius: 0.75rem;
   border: 1px solid ${colorBorder};
@@ -254,7 +261,7 @@ const InputWrapper = styled.div`
 
   overflow-y: hidden;
   align-items: center;
-  margin: auto;
+  margin: 0;
   padding: 0.75rem !important;
 `;
 

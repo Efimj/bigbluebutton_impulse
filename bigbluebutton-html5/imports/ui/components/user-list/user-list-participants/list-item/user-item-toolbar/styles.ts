@@ -2,6 +2,7 @@ import styled from 'styled-components';
 import {
   colorGrayIcons,
   colorGrayUserListToolbar,
+  colorDanger,
   colorPrimary,
 } from '/imports/ui/stylesheets/styled-components/palette';
 
@@ -16,10 +17,13 @@ const ToolbarContainer = styled.div`
 
 const ToolbarItem = styled.div<{ disabled?: boolean, hasText?: boolean, $active?: boolean }>`
   cursor: pointer;
-  color: ${({ hasText, $active }) => ((hasText || $active) ? colorPrimary : colorGrayIcons)};
+  color: ${({ hasText, $active }) => {
+    if ($active) return colorDanger;
+    return hasText ? colorPrimary : colorGrayIcons;
+  }};
   padding: 0.125rem;
   border-radius: 50%;
-  background-color: ${({ $active }) => ($active ? 'rgba(15, 118, 210, 0.16)' : 'transparent')};
+  background-color: ${({ $active }) => ($active ? 'rgba(223, 39, 33, 0.14)' : 'transparent')};
 
   line-height: 1;
 

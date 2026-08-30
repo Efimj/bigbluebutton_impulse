@@ -386,13 +386,24 @@ export const createToolbarOptions = (
   const userLocked = user.locked
     && lockSettings?.hasActiveLockSetting
     && !user.isModerator;
+  const cameraLocked = user.userLockSettings?.disableCamera ?? false;
+  const microphoneLocked = user.userLockSettings?.disableMicrophone ?? false;
+  const hasActiveCamera = user.cameras.length > 0;
+  const updateMediaLocks = (disableCamera: boolean, disableMicrophone: boolean) => {
+    setUserMediaLocked({
+      variables: {
+        userId: user.userId,
+        disablePubChat: user.userLockSettings?.disablePublicChat ?? false,
+        disableCamera,
+        disableMicrophone,
+      },
+    });
+  };
 
   const getAudioStateOption = () => {
-    if (!subjectUserInAudio) return null;
-
     const isListenOnly = user.voice?.listenOnly || user.voice?.listenOnlyInputDevice;
 
-    if (isListenOnly) {
+    if (subjectUserInAudio && isListenOnly) {
       return {
         key: 'audio',
         label: intl.formatMessage(intlMessages.listenOnly),
@@ -402,6 +413,37 @@ export const createToolbarOptions = (
         dataTest: 'listenOnly',
       };
     }
+
+    // A moderator controls another viewer's microphone in three steps:
+    // unmuted -> muted -> locked -> unlocked. The lock mutation also enforces
+    // mute server-side and prevents the viewer from unmuting themselves.
+    if (allowedToChangeUserMediaLock) {
+      if (microphoneLocked) {
+        return {
+          key: 'audio',
+          icon: 'mute',
+          label: intl.formatMessage(intlMessages.unlockUserMicrophone, { userName: user.name }),
+          onClick: () => updateMediaLocks(cameraLocked, false),
+          disabled: false,
+          dataTest: 'allowUserMicrophone',
+          active: true,
+        };
+      }
+
+      if (!subjectUserInAudio || isMuted) {
+        return {
+          key: 'audio',
+          icon: 'mute',
+          label: intl.formatMessage(intlMessages.lockUserMicrophone, { userName: user.name }),
+          onClick: () => updateMediaLocks(cameraLocked, true),
+          disabled: false,
+          dataTest: 'disableUserMicrophone',
+          active: false,
+        };
+      }
+    }
+
+    if (!subjectUserInAudio) return null;
 
     const hasPermissionToUnmute = allowedToUnmuteAudio;
     const hasPermissionToMute = allowedToMuteAudio;
@@ -435,18 +477,32 @@ export const createToolbarOptions = (
     };
   };
   const audioStateOption = getAudioStateOption();
-  const cameraLocked = user.userLockSettings?.disableCamera ?? false;
-  const microphoneLocked = user.userLockSettings?.disableMicrophone ?? false;
-  const updateMediaLocks = (disableCamera: boolean, disableMicrophone: boolean) => {
-    setUserMediaLocked({
-      variables: {
-        userId: user.userId,
-        disablePubChat: user.userLockSettings?.disablePublicChat ?? false,
-        disableCamera,
-        disableMicrophone,
-      },
-    });
-  };
+  let cameraAction;
+  if (cameraLocked) {
+    cameraAction = {
+      label: intl.formatMessage(intlMessages.unlockUserCamera, { userName: user.name }),
+      icon: 'video_off',
+      onClick: () => updateMediaLocks(false, microphoneLocked),
+      dataTest: 'allowUserCamera',
+      active: true,
+    };
+  } else if (hasActiveCamera) {
+    cameraAction = {
+      label: intl.formatMessage(intlMessages.ejectUserCamerasLabel, { userName: user.name }),
+      icon: 'video',
+      onClick: () => userEjectCameras({ variables: { userId: user.userId } }),
+      dataTest: 'ejectUserCameras',
+      active: false,
+    };
+  } else {
+    cameraAction = {
+      label: intl.formatMessage(intlMessages.lockUserCamera, { userName: user.name }),
+      icon: 'video_off',
+      onClick: () => updateMediaLocks(true, microphoneLocked),
+      dataTest: 'disableUserCamera',
+      active: false,
+    };
+  }
 
   return {
     pinnedToolbarOptions: [
@@ -478,16 +534,10 @@ export const createToolbarOptions = (
       },
       ...(audioStateOption ? [{ ...audioStateOption, allowed: true }] : []),
       {
-        allowed: allowedToChangeUserMediaLock,
+        allowed: allowedToChangeUserMediaLock
+          && (cameraLocked || !hasActiveCamera || allowedToEjectCameras),
         key: 'toggleCameraLock',
-        label: intl.formatMessage(
-          cameraLocked ? intlMessages.unlockUserCamera : intlMessages.lockUserCamera,
-          { userName: user.name },
-        ),
-        icon: cameraLocked ? 'video' : 'video_off',
-        onClick: () => updateMediaLocks(!cameraLocked, microphoneLocked),
-        dataTest: cameraLocked ? 'allowUserCamera' : 'disableUserCamera',
-        active: cameraLocked,
+        ...cameraAction,
       },
       {
         allowed: allowedToChangeWhiteboardAccess && !!pageId,
@@ -527,9 +577,12 @@ export const createToolbarOptions = (
           { userName: user.name },
         ),
         onClick: () => updateMediaLocks(!cameraLocked, microphoneLocked),
-        icon: cameraLocked ? 'video' : 'video_off',
+        icon: 'video_off',
         iconRight: cameraLocked ? 'check' : undefined,
-        customStyles: cameraLocked ? { backgroundColor: 'rgba(15, 118, 210, 0.16)' } : undefined,
+        customStyles: cameraLocked ? {
+          backgroundColor: 'rgba(223, 39, 33, 0.14)',
+          color: 'var(--color-danger, #DF2721)',
+        } : undefined,
         dataTest: cameraLocked ? 'allowUserCameraMenu' : 'disableUserCameraMenu',
       },
       {
@@ -540,9 +593,12 @@ export const createToolbarOptions = (
           { userName: user.name },
         ),
         onClick: () => updateMediaLocks(cameraLocked, !microphoneLocked),
-        icon: microphoneLocked ? 'unmute' : 'mute',
+        icon: 'mute',
         iconRight: microphoneLocked ? 'check' : undefined,
-        customStyles: microphoneLocked ? { backgroundColor: 'rgba(15, 118, 210, 0.16)' } : undefined,
+        customStyles: microphoneLocked ? {
+          backgroundColor: 'rgba(223, 39, 33, 0.14)',
+          color: 'var(--color-danger, #DF2721)',
+        } : undefined,
         dataTest: microphoneLocked ? 'allowUserMicrophoneMenu' : 'disableUserMicrophoneMenu',
       },
       {
