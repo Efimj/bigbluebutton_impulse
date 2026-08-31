@@ -64,8 +64,6 @@ object CameraHdlrHelpers extends SystemConfiguration with RightsManagementTrait 
       liveMeeting: LiveMeeting,
       userId:      String
   ): Boolean = {
-    val allowModsToEjectCameras = liveMeeting.props.usersProp.allowModsToEjectCameras
-    val isBreakout = liveMeeting.props.meetingProp.isBreakout
     val hasPermission = !permissionFailed(
       PermissionCheck.MOD_LEVEL,
       PermissionCheck.VIEWER_LEVEL,
@@ -73,8 +71,10 @@ object CameraHdlrHelpers extends SystemConfiguration with RightsManagementTrait 
       userId
     )
 
-    (allowModsToEjectCameras &&
-      hasPermission)
+    // Per-user camera controls are always available to moderators. The HTML5
+    // client exposes this action alongside the per-user media locks, so gating
+    // it behind the legacy meeting policy made the visible button a no-op.
+    hasPermission
   }
 
   def isWebcamsOnlyForModeratorUpdateAllowed(

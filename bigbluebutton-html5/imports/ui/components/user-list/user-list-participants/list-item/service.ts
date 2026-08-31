@@ -242,8 +242,7 @@ export const generateActionsPermissions = (
 
   const allowedToEjectCameras = amIModerator
     && !amISubjectUser
-    && usersPolicies?.allowModsToEjectCameras
-    && subjectUser.cameras.length > 0
+    && (subjectUser.isSharingCamera || subjectUser.cameras.length > 0)
     && (type === 'participant' || type === 'raised-hand');
 
   const allowedToChangeUserMediaLock = amIModerator
@@ -428,7 +427,7 @@ export const createToolbarOptions = (
           onClick: () => updateMediaLocks(cameraLocked, false),
           disabled: false,
           dataTest: 'allowUserMicrophone',
-          active: true,
+          mediaState: 'locked' as const,
         };
       }
 
@@ -440,7 +439,6 @@ export const createToolbarOptions = (
           onClick: () => updateMediaLocks(cameraLocked, true),
           disabled: false,
           dataTest: 'disableUserMicrophone',
-          active: false,
         };
       }
     }
@@ -476,6 +474,7 @@ export const createToolbarOptions = (
         : () => {},
       disabled: !hasPermissionToMute,
       dataTest: hasPermissionToMute ? 'muteUser' : 'audioStateUnmuted',
+      mediaState: 'active' as const,
     };
   };
   const audioStateOption = getAudioStateOption();
@@ -486,7 +485,7 @@ export const createToolbarOptions = (
       icon: 'video_off',
       onClick: () => updateMediaLocks(false, microphoneLocked),
       dataTest: 'allowUserCamera',
-      active: true,
+      mediaState: 'locked' as const,
     };
   } else if (hasActiveCamera) {
     cameraAction = {
@@ -494,7 +493,7 @@ export const createToolbarOptions = (
       icon: 'video',
       onClick: () => userEjectCameras({ variables: { userId: user.userId } }),
       dataTest: 'ejectUserCameras',
-      active: false,
+      mediaState: 'active' as const,
     };
   } else {
     cameraAction = {
@@ -502,7 +501,6 @@ export const createToolbarOptions = (
       icon: 'video_off',
       onClick: () => updateMediaLocks(true, microphoneLocked),
       dataTest: 'disableUserCamera',
-      active: false,
     };
   }
 

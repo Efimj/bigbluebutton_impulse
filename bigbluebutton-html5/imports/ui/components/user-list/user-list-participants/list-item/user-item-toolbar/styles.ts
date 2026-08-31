@@ -15,15 +15,24 @@ const ToolbarContainer = styled.div`
   align-items: center;
 `;
 
-const ToolbarItem = styled.div<{ disabled?: boolean, hasText?: boolean, $active?: boolean }>`
+const ToolbarItem = styled.div<{
+  disabled?: boolean,
+  hasText?: boolean,
+  $mediaState?: 'active' | 'locked',
+}>`
   cursor: pointer;
-  color: ${({ hasText, $active }) => {
-    if ($active) return colorDanger;
+  color: ${({ hasText, $mediaState }) => {
+    if ($mediaState === 'locked') return colorDanger;
+    if ($mediaState === 'active') return colorPrimary;
     return hasText ? colorPrimary : colorGrayIcons;
   }};
   padding: 0.125rem;
   border-radius: 50%;
-  background-color: ${({ $active }) => ($active ? 'rgba(223, 39, 33, 0.14)' : 'transparent')};
+  background-color: ${({ $mediaState }) => {
+    if ($mediaState === 'locked') return 'rgba(223, 39, 33, 0.14)';
+    if ($mediaState === 'active') return 'rgba(15, 111, 198, 0.14)';
+    return 'transparent';
+  }};
 
   line-height: 1;
 

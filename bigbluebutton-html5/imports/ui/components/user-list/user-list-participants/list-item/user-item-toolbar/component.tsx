@@ -37,7 +37,7 @@ const UserItemToolbar: React.FC<UserItemToolbarProps> = ({
       label,
       icon,
       disabled,
-      active,
+      mediaState,
     } = pinnedToolbarOption;
 
     if (icon) {
@@ -47,7 +47,7 @@ const UserItemToolbar: React.FC<UserItemToolbarProps> = ({
           onClick={onClick}
           data-test={dataTest}
           disabled={disabled}
-          $active={active}
+          $mediaState={mediaState}
         >
           <Tooltip
             title={label}

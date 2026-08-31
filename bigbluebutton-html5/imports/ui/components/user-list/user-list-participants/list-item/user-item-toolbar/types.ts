@@ -10,7 +10,7 @@ export interface ToolbarEntry {
   label: string;
   key: string;
   disabled?: boolean;
-  active?: boolean;
+  mediaState?: 'active' | 'locked';
   iconRight?: PluginSdk.PluginIconType;
   customStyles?: React.CSSProperties;
 }
