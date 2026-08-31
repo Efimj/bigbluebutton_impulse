@@ -25,6 +25,7 @@ export const userComparator = (a?: Partial<User>, b?: Partial<User>): boolean =>
   if (!!a.isModerator !== !!b.isModerator) return false;
   if ((a.logoutUrl ?? '') !== (b.logoutUrl ?? '')) return false;
   if ((a.currentlyInMeeting ?? false) !== (b.currentlyInMeeting ?? false)) return false;
+  if ((a.isSharingCamera ?? false) !== (b.isSharingCamera ?? false)) return false;
   if ((a.joinErrorCode ?? '') !== (b.joinErrorCode ?? '')) return false;
   if ((a.joinErrorMessage ?? '') !== (b.joinErrorMessage ?? '')) return false;
   if ((a.joined ?? false) !== (b.joined ?? false)) return false;

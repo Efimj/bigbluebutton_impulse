@@ -22,6 +22,7 @@ export type User = {
   mobile?: boolean;
   guest?: boolean;
   bot?: boolean;
+  isSharingCamera?: boolean;
   isDialIn?: boolean;
   loggedOut?: boolean;
   whiteboardWriteAccess?: boolean;

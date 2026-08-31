@@ -155,16 +155,23 @@ const VideoListItem: React.FC<VideoListItemProps> = (props) => {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setUserCamerasRequestedFromPlugin((userCamera) => {
-      if (videoContainer.current && !userCamera.some((uc) => uc.streamId === cameraId)) {
-        userCamera.push({
+    setUserCamerasRequestedFromPlugin((userCameras) => {
+      const camerasWithoutCurrent = userCameras.filter((uc) => uc.streamId !== cameraId);
+      if (videoContainer.current) {
+        return [...camerasWithoutCurrent, {
           streamId: cameraId,
           userCameraDomElement: videoContainer.current,
-        });
+        }];
       }
-      return userCamera;
+      return camerasWithoutCurrent;
     });
-  }, [videoContainer]);
+
+    return () => {
+      setUserCamerasRequestedFromPlugin((userCameras) => (
+        userCameras.filter((uc) => uc.streamId !== cameraId)
+      ));
+    };
+  }, [cameraId, setUserCamerasRequestedFromPlugin]);
 
   const videoIsReady = isStreamHealthy && videoDataLoaded && !isSelfViewDisabled;
   const Settings = getSettingsSingletonInstance();
@@ -230,7 +237,10 @@ const VideoListItem: React.FC<VideoListItemProps> = (props) => {
   const managementUser = {
     ...user,
     voice: stream.type !== VIDEO_TYPES.CONNECTING ? stream.voice : currentUser?.voice,
-    cameras: user?.cameras ?? [],
+    // A rendered stream is authoritative evidence that this participant has an
+    // active camera, even while the full user subscription is catching up.
+    cameras: user?.cameras ?? (stream.type === VIDEO_TYPES.STREAM ? [{ streamId }] : []),
+    isSharingCamera: user?.isSharingCamera ?? stream.type === VIDEO_TYPES.STREAM,
     userLockSettings: user?.userLockSettings,
   } as Partial<MeetingUser>;
 

@@ -45,18 +45,9 @@ export const VIDEO_STREAMS_SUBSCRIPTION = gql`
         authed
         mobile
         guest
-        bot
         isDialIn
         loggedOut
         whiteboardWriteAccess
-        cameras {
-          streamId
-        }
-        userLockSettings {
-          disablePublicChat
-          disableCamera
-          disableMicrophone
-        }
       }
       voice {
         floor
@@ -114,6 +105,7 @@ export const GRID_USERS_SUBSCRIPTION = gql`
       mobile
       guest
       bot
+      isSharingCamera
       isDialIn
       loggedOut
       whiteboardWriteAccess

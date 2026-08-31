@@ -46,6 +46,7 @@ subscription UserListSubscription($offset: Int!, $limit: Int!, $where: user_bool
     clientType
     disconnected
     loggedOut
+    isSharingCamera
     voice {
       joined
       deafened

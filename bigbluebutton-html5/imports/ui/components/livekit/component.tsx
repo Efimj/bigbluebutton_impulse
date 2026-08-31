@@ -451,7 +451,10 @@ const BBBLiveKitRoomContainer: React.FC = () => {
   const [meetingSettings] = useMeetingSettings();
   const url = meetingSettings.public.media?.livekit?.url
     || `wss://${window.location.hostname}/livekit`;
-  const withSelectiveSubscription = meetingSettings.public.media?.livekit?.selectiveSubscription?.enabled ?? true;
+  // This deployment guarantees that every participant receives every active
+  // camera. Keep LiveKit auto-subscription on regardless of stale meeting
+  // settings cached by a room created before the configuration change.
+  const withSelectiveSubscription = false;
   const logLevel = meetingSettings.public.media?.livekit?.logLevel ?? LogLevel.warn;
   const roomOptions = meetingSettings.public.media?.livekit?.roomOptions ?? {
     adaptiveStream: true,

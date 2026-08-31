@@ -73,6 +73,7 @@ export interface User {
   clientType: string;
   disconnected: boolean;
   currentlyInMeeting: boolean;
+  isSharingCamera: boolean;
   ejectReason: string;
   ejectReasonCode: string;
   ejected: boolean;

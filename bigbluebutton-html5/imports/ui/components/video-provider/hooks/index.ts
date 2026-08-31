@@ -718,7 +718,6 @@ const reserveAudioOnlyTiles = ({
 };
 
 export const useVideoStreams = () => {
-  const { viewParticipantsWebcams } = useSettings(SETTINGS.DATA_SAVING) as { viewParticipantsWebcams?: boolean };
   const { currentVideoPageIndex, numberOfPages } = useVideoState();
   const { data: currentUser } = useCurrentUser((u) => ({ isModerator: u.isModerator }));
   // Viewers should see pinned moderators ahead of pinned non-moderators; moderators keep
@@ -748,9 +747,10 @@ export const useVideoStreams = () => {
 
   if (connectingStream) streams.push(connectingStream);
 
-  if (!viewParticipantsWebcams) {
-    streams = streams.filter((vs) => videoService.isLocalStream(vs.stream));
-  } else if (inAnyGroup) {
+  // Cameras are always visible in this deployment. Do not reduce the stream list
+  // to the local camera when an old browser profile has data saving enabled.
+  // Explicit media-group boundaries still apply.
+  if (inAnyGroup) {
     streams = streams.filter((vs) => videoService.isLocalStream(vs.stream)
       || (senderIds?.has(vs.userId)));
   } else if (senderIdsInGroups) {
@@ -840,6 +840,27 @@ export const useVideoStreams = () => {
   }
 
   const { gridUsers, overflowCount, overflowUsers } = useGridUsers();
+
+  // `user_camera.user` points to the restricted `user_ref` GraphQL type. It
+  // intentionally does not expose reverse camera/lock relationships (or bot),
+  // so requesting those fields makes Hasura reject the entire video stream
+  // subscription. Enrich stream owners with the full records already returned
+  // by the grid's root `user` subscription instead.
+  const fullUsersById = new Map(gridUsers.map((gridUser) => [gridUser.userId, gridUser]));
+  streams = streams.map((stream) => {
+    if (stream.type !== VIDEO_TYPES.STREAM && stream.type !== VIDEO_TYPES.AUDIO_ONLY) return stream;
+
+    const fullUser = fullUsersById.get(stream.userId);
+    if (!fullUser) return stream;
+
+    return {
+      ...stream,
+      user: {
+        ...stream.user,
+        ...fullUser,
+      },
+    };
+  });
 
   return {
     streams,

@@ -388,7 +388,9 @@ export const createToolbarOptions = (
     && !user.isModerator;
   const cameraLocked = user.userLockSettings?.disableCamera ?? false;
   const microphoneLocked = user.userLockSettings?.disableMicrophone ?? false;
-  const hasActiveCamera = user.cameras.length > 0;
+  // isSharingCamera is a scalar maintained by BBB and updates reliably when
+  // camera rows change. Keep the relationship length as a compatibility fallback.
+  const hasActiveCamera = user.isSharingCamera || user.cameras.length > 0;
   const updateMediaLocks = (disableCamera: boolean, disableMicrophone: boolean) => {
     setUserMediaLocked({
       variables: {
@@ -534,8 +536,9 @@ export const createToolbarOptions = (
       },
       ...(audioStateOption ? [{ ...audioStateOption, allowed: true }] : []),
       {
-        allowed: allowedToChangeUserMediaLock
-          && (cameraLocked || !hasActiveCamera || allowedToEjectCameras),
+        // Moderators must retain the camera control while a viewer is sharing.
+        // The same button intentionally cycles active -> stopped -> locked -> unlocked.
+        allowed: allowedToChangeUserMediaLock,
         key: 'toggleCameraLock',
         ...cameraAction,
       },

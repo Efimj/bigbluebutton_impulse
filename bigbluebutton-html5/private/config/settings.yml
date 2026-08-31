@@ -1006,7 +1006,10 @@ public:
       # livekit.selectiveSubscription: whether to use selective subscription for all
       # applicable track sources. This overrides autoSubscribe.
       selectiveSubscription:
-        enabled: true
+        # Every meeting participant must receive every published camera. With
+        # auto-subscription enabled, camera delivery no longer depends on a
+        # race between the GraphQL camera row and the LiveKit publication.
+        enabled: false
         # audioSubscriptionPoolSize: maximum number of simultaneously subscribed
         # audio tracks. 0 means unlimited. Exemptions that may exceed the pool:
         # screen audio, unmuted users.
@@ -1021,7 +1024,7 @@ public:
       # livekit.forceRelay: forces TURN/relay usage on all UAs when using LK.
       forceRelay: false
       # livekit.forceRelayOnFirefox: forces TURN/relay usage on Firefox when using LK.
-      forceRelayOnFirefox: false
+      forceRelayOnFirefox: true
       roomOptions:
         adaptiveStream: true
         dynacast: true
