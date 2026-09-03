@@ -81,7 +81,7 @@ public:
     # restarting webcam.
     enableWebcamSelectorButton: true
     enableTalkingIndicator: true
-    enableCameraBrightness: true
+    enableCameraBrightness: false
     mirrorOwnWebcam: true
     viewersInWebcam: 8
     allowLogout: true
@@ -462,11 +462,11 @@ public:
         hidden: true
       - id: low
         name: Low
-        default: false
+        default: true
         bitrate: 100
       - id: medium
         name: Medium
-        default: true
+        default: false
         bitrate: 200
       - id: high
         name: High

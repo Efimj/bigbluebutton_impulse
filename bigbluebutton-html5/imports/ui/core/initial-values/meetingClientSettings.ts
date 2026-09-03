@@ -51,7 +51,7 @@ export const meetingClientSettingsInitialValues: MeetingClientSettings = {
       enableCameraAsContent: true,
       enableWebcamSelectorButton: true,
       enableTalkingIndicator: true,
-      enableCameraBrightness: true,
+      enableCameraBrightness: false,
       mirrorOwnWebcam: false,
       viewersInWebcam: 8,
       allowLogout: true,
@@ -321,13 +321,13 @@ export const meetingClientSettingsInitialValues: MeetingClientSettings = {
         {
           id: 'low',
           name: 'Low',
-          default: false,
+          default: true,
           bitrate: 100,
         },
         {
           id: 'medium',
           name: 'Medium',
-          default: true,
+          default: false,
           bitrate: 200,
         },
         {

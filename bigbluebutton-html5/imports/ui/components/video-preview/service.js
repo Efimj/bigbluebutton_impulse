@@ -17,9 +17,9 @@ const getDefaultProfile = () => {
   // Unfiltered, includes hidden profiles
   const CAMERA_PROFILES = window.meetingClientSettings.public.kurento.cameraProfiles || [];
 
-  return CAMERA_PROFILES.find((profile) => profile.id === BBBStorage.getItem('WebcamProfileId'))
+  return CAMERA_PROFILES.find((profile) => profile.default)
     || CAMERA_PROFILES.find((profile) => profile.id === VideoService.getUserParameterProfile())
-    || CAMERA_PROFILES.find((profile) => profile.default)
+    || CAMERA_PROFILES.find((profile) => profile.id === BBBStorage.getItem('WebcamProfileId'))
     || CAMERA_PROFILES[0];
 };
 

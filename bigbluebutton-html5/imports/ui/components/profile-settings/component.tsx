@@ -34,7 +34,7 @@ import AudioSelectors from './audio-selectors/component';
 import Tooltip from '/imports/ui/components/common/tooltip/component';
 import { colorPrimary } from '../../stylesheets/styled-components/palette';
 import { useVideoPreview } from '/imports/ui/components/video-preview/hooks/useVideoPreview';
-import { CameraProfileProps, CustomBgParams } from '/imports/ui/components/video-preview/hooks/types';
+import { CustomBgParams } from '/imports/ui/components/video-preview/hooks/types';
 import usePreviousValue from '/imports/ui/hooks/usePreviousValue';
 import getFromUserSettings from '../../services/users-settings';
 import PanelHeader from '/imports/ui/components/common/panel-header/component';
@@ -64,14 +64,6 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
     id: 'app.videoPreview.cameraLabel',
     description: 'Camera dropdown label',
   },
-  qualityLabel: {
-    id: 'app.videoPreview.profileLabel',
-    description: 'Quality dropdown label',
-  },
-  sharedCameraLabel: {
-    id: 'app.videoPreview.sharedCameraLabel',
-    description: 'Already Shared camera label',
-  },
   findingWebcamsLabel: {
     id: 'app.videoPreview.findingWebcamsLabel',
     description: 'Finding webcams label',
@@ -79,10 +71,6 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
   webcamNotFoundLabel: {
     id: 'app.videoPreview.webcamNotFoundLabel',
     description: 'Webcam not found label',
-  },
-  profileNotFoundLabel: {
-    id: 'app.videoPreview.profileNotFoundLabel',
-    description: 'Profile not found label',
   },
   awayLabel: {
     id: 'app.actionsBar.reactions.away',
@@ -242,7 +230,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
     currentVideoStream,
     VIEW_STATES,
     handleSelectWebcam,
-    handleSelectProfile,
     handleVirtualBgSelected,
     setCameraBrightness,
     stopVirtualBackground,
@@ -624,58 +611,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
     );
   }
 
-  function renderQualitySelector(sectionIndex: number): React.ReactNode {
-    // @ts-ignore
-    const CAMERA_PROFILES = (window.meetingClientSettings.public.kurento.cameraProfiles || []) as CameraProfileProps[];
-    // Filtered, without hidden profiles
-    const PREVIEW_CAMERA_PROFILES = CAMERA_PROFILES.filter((p) => !p.hidden);
-
-    const cameraSelector = (
-      <Styled.CameraQualitySelector
-        value={selectedProfile || ''}
-        onChange={(e) => handleSelectProfile(e as unknown as React.ChangeEvent<HTMLSelectElement>)}
-        IconComponent={ExpandMoreIcon}
-        disabled={isAlreadyShared(cameraSections[sectionIndex].deviceId as string)}
-      >
-        {PREVIEW_CAMERA_PROFILES.map((profile: CameraProfileProps) => {
-          const label = intlMessages[`${profile.id}`]
-            ? formatMessage(intlMessages[`${profile.id}`])
-            : profile.name;
-          return (
-            <MenuItem key={profile.id} value={profile.id}>
-              {label}
-            </MenuItem>
-          );
-        })}
-      </Styled.CameraQualitySelector>
-    );
-
-    return (
-      <Styled.CameraQualityContainer>
-        <Styled.CameraQualityText>
-          {formatMessage(intlMessages.qualityLabel)}
-        </Styled.CameraQualityText>
-        {PREVIEW_CAMERA_PROFILES.length > 0
-          ? (
-            <>
-              {isAlreadyShared(cameraSections[sectionIndex].deviceId as string) ? (
-                <Tooltip title={formatMessage(intlMessages.sharedCameraLabel)}>
-                  {cameraSelector}
-                </Tooltip>
-              ) : (
-                cameraSelector
-              )}
-            </>
-          )
-          : (
-            <span>
-              {formatMessage(intlMessages.profileNotFoundLabel)}
-            </span>
-          )}
-      </Styled.CameraQualityContainer>
-    );
-  }
-
   const renderBrightnessInput = (sectionIndex: number, currentBrightness: number) => {
     // @ts-ignore
     const ENABLE_CAMERA_BRIGHTNESS = window.meetingClientSettings.public.app.enableCameraBrightness;
@@ -840,13 +775,12 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = () => {
                     )
                     : <span>{formatMessage(intlMessages.webcamNotFoundLabel)}</span>}
                 </Styled.DeviceContainer>
-                <Styled.DeviceContainer extraPadding={cameraSections.length > 1}>
-                  <Styled.WbSunnyIcon />
-                  {renderBrightnessInput(sectionIndex, section.brightness)}
-                </Styled.DeviceContainer>
-                <Styled.DeviceContainer extraPadding={cameraSections.length > 1}>
-                  {renderQualitySelector(sectionIndex)}
-                </Styled.DeviceContainer>
+                {window.meetingClientSettings.public.app.enableCameraBrightness && (
+                  <Styled.DeviceContainer extraPadding={cameraSections.length > 1}>
+                    <Styled.WbSunnyIcon />
+                    {renderBrightnessInput(sectionIndex, section.brightness)}
+                  </Styled.DeviceContainer>
+                )}
               </Styled.DevicesSettingsContainer>
               <Styled.VirtualBackgroundContainer extraPadding={cameraSections.length > 1}>
                 {isVirtualBackgroundsEnabled && renderVirtualBgSelector(sectionIndex)}

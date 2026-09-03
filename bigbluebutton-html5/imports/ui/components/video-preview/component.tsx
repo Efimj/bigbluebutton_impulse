@@ -21,7 +21,6 @@ import Checkbox from '/imports/ui/components/common/checkbox/component';
 import AppService from '/imports/ui/components/app/service';
 import Session from '/imports/ui/services/storage/in-memory';
 import { useVideoPreview } from './hooks/useVideoPreview';
-import { CameraProfileProps } from './hooks/types';
 
 interface VideoPreviewProps {
   closeModal: () => void;
@@ -64,26 +63,6 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
     id: 'app.videoPreview.cameraLabel',
     description: 'Camera dropdown label',
   },
-  qualityLabel: {
-    id: 'app.videoPreview.profileLabel',
-    description: 'Quality dropdown label',
-  },
-  low: {
-    id: 'app.videoPreview.quality.low',
-    description: 'Low quality option label',
-  },
-  medium: {
-    id: 'app.videoPreview.quality.medium',
-    description: 'Medium quality option label',
-  },
-  high: {
-    id: 'app.videoPreview.quality.high',
-    description: 'High quality option label',
-  },
-  hd: {
-    id: 'app.videoPreview.quality.hd',
-    description: 'High definition option label',
-  },
   startSharingLabel: {
     id: 'app.videoPreview.startSharingLabel',
     description: 'Start sharing button label',
@@ -96,10 +75,6 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
     id: 'app.videoPreview.stopSharingAllLabel',
     description: 'Stop sharing all button label',
   },
-  sharedCameraLabel: {
-    id: 'app.videoPreview.sharedCameraLabel',
-    description: 'Already Shared camera label',
-  },
   findingWebcamsLabel: {
     id: 'app.videoPreview.findingWebcamsLabel',
     description: 'Finding webcams label',
@@ -107,10 +82,6 @@ const intlMessages: { [key: string]: { id: string; description?: string } } = de
   webcamNotFoundLabel: {
     id: 'app.videoPreview.webcamNotFoundLabel',
     description: 'Webcam not found label',
-  },
-  profileNotFoundLabel: {
-    id: 'app.videoPreview.profileNotFoundLabel',
-    description: 'Profile not found label',
   },
   iOSError: {
     id: 'app.audioModal.iOSBrowser',
@@ -185,7 +156,6 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
   const {
     webcamDeviceId,
     availableWebcams,
-    selectedProfile,
     viewState,
     deviceError,
     previewError,
@@ -197,7 +167,6 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     VIEW_STATES,
     shouldSkipVideoPreview,
     handleSelectWebcam,
-    handleSelectProfile,
     handleVirtualBgSelected,
     setCameraBrightness,
     handleBrightnessAreaChange,
@@ -303,57 +272,6 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
     return `${intl.formatMessage(intlMessages.cameraLabel)} ${index}`;
   }, [intl]);
 
-  const renderQualitySelector = () => {
-    const shared = isAlreadyShared(webcamDeviceId);
-
-    if (shared) {
-      return (
-        <Styled.Label>
-          {intl.formatMessage(intlMessages.sharedCameraLabel)}
-        </Styled.Label>
-      );
-    }
-
-    if (cameraAsContent) return null;
-
-    // @ts-ignore
-    const CAMERA_PROFILES = (window.meetingClientSettings.public.kurento.cameraProfiles || []) as CameraProfileProps[];
-    const PREVIEW_CAMERA_PROFILES = CAMERA_PROFILES.filter((p) => !p.hidden);
-
-    return (
-      <>
-        <Styled.Label htmlFor="setQuality">
-          {intl.formatMessage(intlMessages.qualityLabel)}
-        </Styled.Label>
-        {PREVIEW_CAMERA_PROFILES.length > 0
-          ? (
-            <Styled.Select
-              id="setQuality"
-              value={selectedProfile || ''}
-              onChange={handleSelectProfile}
-            >
-              {PREVIEW_CAMERA_PROFILES.map((profile: CameraProfileProps) => {
-                const label = intlMessages[`${profile.id}`]
-                  ? intl.formatMessage(intlMessages[`${profile.id}`])
-                  : profile.name;
-
-                return (
-                  <option key={profile.id} value={profile.id}>
-                    {`${label}`}
-                  </option>
-                );
-              })}
-            </Styled.Select>
-          )
-          : (
-            <span>
-              {intl.formatMessage(intlMessages.profileNotFoundLabel)}
-            </span>
-          )}
-      </>
-    );
-  };
-
   const renderDeviceSelectors = () => (
     <Styled.InternCol>
       <Styled.Label htmlFor="setCam">
@@ -378,7 +296,6 @@ const VideoPreview: React.FC<VideoPreviewProps> = ({
             {intl.formatMessage(intlMessages.webcamNotFoundLabel)}
           </span>
         )}
-      {renderQualitySelector()}
     </Styled.InternCol>
   );
 
