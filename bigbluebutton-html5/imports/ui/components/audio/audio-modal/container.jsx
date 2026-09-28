@@ -19,7 +19,6 @@ import AudioManager from '/imports/ui/services/audio-manager';
 import { useStorageKey } from '/imports/ui/services/storage/hooks';
 import useMeeting from '/imports/ui/core/hooks/useMeeting';
 import useLockContext from '/imports/ui/components/lock-viewers/hooks/useLockContext';
-import deviceInfo from '/imports/utils/deviceInfo';
 import { useIsAudioTranscriptionEnabled } from '/imports/ui/components/audio/audio-graphql/audio-captions/service';
 import useIsAudioConnected from '/imports/ui/components/audio/audio-graphql/hooks/useIsAudioConnected';
 import { getStoredAudioInputDeviceId } from '/imports/api/audio/client/bridge/service';
@@ -50,14 +49,6 @@ const AudioModalContainer = (props) => {
     || (getFromUserSettings('bbb_listen_only_mode', APP_CONFIG.listenOnlyMode) && !usingLiveKit);
   const skipCheck = getFromUserSettings('bbb_skip_check_audio', APP_CONFIG.skipCheck);
   const skipCheckOnJoin = getFromUserSettings('bbb_skip_check_audio_on_first_join', APP_CONFIG.skipCheckOnJoin);
-  // Mobile users have significant trouble figuring out correct audio I/O devices
-  // according to feedbacks. The potential absence of echo test after having set
-  // an initial device in the first join cycle might complicate things even further
-  // if they got it wrong. Hence, we ignore the flag for mobile users.
-  const skipEchoTestIfPreviousDevice = getFromUserSettings(
-    'bbb_skip_echotest_if_previous_device',
-    APP_CONFIG.skipEchoTestIfPreviousDevice,
-  ) && !deviceInfo.isMobile;
   const autoJoin = getFromUserSettings('bbb_auto_join_audio', APP_CONFIG.autoJoin);
 
   let formattedDialNum = '';
@@ -96,8 +87,9 @@ const AudioModalContainer = (props) => {
   const permissionStatus = useReactiveVar(AudioManager._permissionStatus.value);
   const { userLocks } = useLockContext();
   const isListenOnlyInputDevice = Service.inputDeviceId() === 'listen-only';
-  const devicesAlreadyConfigured = skipEchoTestIfPreviousDevice
-    && !!getStoredAudioInputDeviceId();
+  // A stored input device means that a previous audio join completed successfully.
+  // Audio device preferences are browser-wide, so they can be reused in any meeting.
+  const devicesAlreadyConfigured = !!getStoredAudioInputDeviceId();
   const joinFullAudioImmediately = !isListenOnlyInputDevice
     && (skipCheck || (skipCheckOnJoin && !getEchoTest) || devicesAlreadyConfigured);
   const joinMic = useCallback(

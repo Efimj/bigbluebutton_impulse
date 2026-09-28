@@ -1,7 +1,7 @@
 import { getSettingsSingletonInstance, hasPersistedChange } from '/imports/ui/services/settings';
 import { SETTINGS } from '/imports/ui/services/settings/enums';
 import logger from '/imports/startup/client/logger';
-import { getStorageSingletonInstance } from '/imports/ui/services/storage';
+import LocalStorage from '/imports/ui/services/storage/local';
 import {
   adoptWasmProcessor,
   createWasmProcessorStream,
@@ -64,22 +64,22 @@ const getCurrentAudioSinkId = () => {
   return audioElement?.sinkId || DEFAULT_OUTPUT_DEVICE_ID;
 };
 
-const getStoredAudioOutputDeviceId = () => getStorageSingletonInstance()
+const getStoredAudioOutputDeviceId = () => LocalStorage
   .getItem(OUTPUT_DEVICE_ID_KEY);
-const storeAudioOutputDeviceId = (deviceId) => getStorageSingletonInstance()
+const storeAudioOutputDeviceId = (deviceId) => LocalStorage
   .setItem(OUTPUT_DEVICE_ID_KEY, deviceId);
-const getStoredAudioInputDeviceId = () => getStorageSingletonInstance()
+const getStoredAudioInputDeviceId = () => LocalStorage
   .getItem(INPUT_DEVICE_ID_KEY);
 const storeAudioInputDeviceId = (deviceId) => {
   if (deviceId === 'listen-only') {
     // Do not store listen-only "devices" and remove any stored device
     // So it starts from scratch next time.
-    getStorageSingletonInstance().removeItem(INPUT_DEVICE_ID_KEY);
+    LocalStorage.removeItem(INPUT_DEVICE_ID_KEY);
 
     return false;
   }
 
-  getStorageSingletonInstance().setItem(INPUT_DEVICE_ID_KEY, deviceId);
+  LocalStorage.setItem(INPUT_DEVICE_ID_KEY, deviceId);
 
   return true;
 };
