@@ -26,6 +26,7 @@ import TooltipContainer from '/imports/ui/components/common/tooltip/container';
 import { convertRemToPixels } from '/imports/utils/dom-utils';
 import RaisedHandsStyles from '../styles';
 import { useUserOperations, mapRaisedHandToUser } from '/imports/ui/components/user-list/hooks/useUserOperations';
+import UserMediaLockConfirmation from '/imports/ui/components/user-list/user-media-lock-confirmation/component';
 
 const intlMessages = defineMessages({
   presenter: {
@@ -135,7 +136,12 @@ const RaisedHandsListItem: React.FC<RaisedHandsListItemProps> = ({
   setOpenUserAction,
 }) => {
   const user = useMemo(() => mapRaisedHandToUser(raisedHandUser), [raisedHandUser]);
-  const { intl, operations, modal } = useUserOperations(user.userId);
+  const {
+    intl,
+    operations,
+    modal,
+    mediaLockModal,
+  } = useUserOperations(user.userId);
 
   const isReactionsEnabled = useIsReactionsEnabled();
   const emojiSize = convertRemToPixels(2.2);
@@ -203,6 +209,7 @@ const RaisedHandsListItem: React.FC<RaisedHandsListItemProps> = ({
     () => modal.setIsOpen(true),
     operations.setRaiseHand,
     operations.setUserMediaLocked,
+    mediaLockModal.request,
   );
 
   const Settings = getSettingsSingletonInstance();
@@ -231,6 +238,14 @@ const RaisedHandsListItem: React.FC<RaisedHandsListItemProps> = ({
           isOpen={modal.isOpen}
         />
       )}
+      <UserMediaLockConfirmation
+        intl={intl}
+        userName={user.name}
+        mediaType={mediaLockModal.mediaType}
+        isOpen={mediaLockModal.isOpen}
+        setIsOpen={mediaLockModal.setIsOpen}
+        onConfirm={mediaLockModal.confirm}
+      />
 
       <Styled.RaiseHandAvatar
         data-test="raisedHandAvatar"

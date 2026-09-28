@@ -143,6 +143,14 @@ const intlMessages = defineMessages({
     description: 'Label for lowering a user raised hand',
   },
 });
+
+export type UserMediaLockType = 'camera' | 'microphone';
+
+export type RequestMediaLockConfirmation = (
+  mediaType: UserMediaLockType,
+  onConfirm: () => void,
+) => void;
+
 export const isVoiceOnlyUser = (userId: string) => userId.toString().startsWith('v_');
 
 export const isMe = (userId: string) => userId === Auth.userID;
@@ -363,6 +371,7 @@ export const createToolbarOptions = (
   openConfirmationModal: () => void,
   setRaiseHand: MutationFunction,
   setUserMediaLocked: MutationFunction,
+  requestMediaLockConfirmation: RequestMediaLockConfirmation,
 ) => {
   const MODERATOR_ROLE = window.meetingClientSettings.public.user.role_moderator;
   const VIEWER_ROLE = window.meetingClientSettings.public.user.role_viewer;
@@ -436,7 +445,10 @@ export const createToolbarOptions = (
           key: 'audio',
           icon: 'mute',
           label: intl.formatMessage(intlMessages.lockUserMicrophone, { userName: user.name }),
-          onClick: () => updateMediaLocks(cameraLocked, true),
+          onClick: () => requestMediaLockConfirmation(
+            'microphone',
+            () => updateMediaLocks(cameraLocked, true),
+          ),
           disabled: false,
           dataTest: 'disableUserMicrophone',
         };
@@ -499,7 +511,10 @@ export const createToolbarOptions = (
     cameraAction = {
       label: intl.formatMessage(intlMessages.lockUserCamera, { userName: user.name }),
       icon: 'video_off',
-      onClick: () => updateMediaLocks(true, microphoneLocked),
+      onClick: () => requestMediaLockConfirmation(
+        'camera',
+        () => updateMediaLocks(true, microphoneLocked),
+      ),
       dataTest: 'disableUserCamera',
     };
   }
@@ -577,7 +592,12 @@ export const createToolbarOptions = (
           cameraLocked ? intlMessages.unlockUserCamera : intlMessages.lockUserCamera,
           { userName: user.name },
         ),
-        onClick: () => updateMediaLocks(!cameraLocked, microphoneLocked),
+        onClick: cameraLocked
+          ? () => updateMediaLocks(false, microphoneLocked)
+          : () => requestMediaLockConfirmation(
+            'camera',
+            () => updateMediaLocks(true, microphoneLocked),
+          ),
         icon: 'video_off',
         iconRight: cameraLocked ? 'check' : undefined,
         customStyles: cameraLocked ? {
@@ -593,7 +613,12 @@ export const createToolbarOptions = (
           microphoneLocked ? intlMessages.unlockUserMicrophone : intlMessages.lockUserMicrophone,
           { userName: user.name },
         ),
-        onClick: () => updateMediaLocks(cameraLocked, !microphoneLocked),
+        onClick: microphoneLocked
+          ? () => updateMediaLocks(cameraLocked, false)
+          : () => requestMediaLockConfirmation(
+            'microphone',
+            () => updateMediaLocks(cameraLocked, true),
+          ),
         icon: 'mute',
         iconRight: microphoneLocked ? 'check' : undefined,
         customStyles: microphoneLocked ? {

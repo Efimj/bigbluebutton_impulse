@@ -131,6 +131,26 @@ object MarkdownUtil {
   }
   private val MaxMessageLength = 5000
 
+  // CommonMark treats a line containing only "+" (with up to three leading
+  // spaces) as an empty unordered-list item. In chat that renders as a bullet,
+  // so a user who sends the literal plus sign sees it changed into a dot.
+  // Escape only the empty marker; real lists such as "+ item" keep their
+  // Markdown semantics.
+  private val StandalonePlusLinePattern: Pattern =
+    Pattern.compile("(?m)^( {0,3})\\+([\\t ]*)(?=\\r?$)")
+
+  private def escapeStandalonePlusLines(text: String): String = {
+    val matcher = StandalonePlusLinePattern.matcher(text)
+    val escaped = new StringBuffer(text.length + 1)
+
+    while (matcher.find()) {
+      val replacement = matcher.group(1) + "\\+" + matcher.group(2)
+      matcher.appendReplacement(escaped, Matcher.quoteReplacement(replacement))
+    }
+    matcher.appendTail(escaped)
+    escaped.toString
+  }
+
   private val MarkdownSyntaxChars: Array[Char] =
     Array('[', ']', '<', '>', '(', ')', '*', '_', '`', '~')
 
@@ -169,7 +189,12 @@ object MarkdownUtil {
 
   def markdownToSafeHtml(md: String, enableImages: Boolean = false): String = {
     val safeMd = if (md.length > MaxMessageLength) md.substring(0, MaxMessageLength) else md
-    val processedMd = if (hasPathologicalInput(safeMd)) escapeMarkdownSyntax(safeMd) else safeMd
+    val escapedStandalonePlus = escapeStandalonePlusLines(safeMd)
+    val processedMd = if (hasPathologicalInput(escapedStandalonePlus)) {
+      escapeMarkdownSyntax(escapedStandalonePlus)
+    } else {
+      escapedStandalonePlus
+    }
 
     val doc = parser.parse(processedMd)
     autolinkUrls(doc) // extra step: create links from plain text URLs

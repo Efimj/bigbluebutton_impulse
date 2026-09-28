@@ -1,7 +1,11 @@
 import { useMutation } from '@apollo/client';
+import { useCallback, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { User, RaisedHandUser } from '/imports/ui/Types/user';
-import { isVoiceOnlyUser } from '/imports/ui/components/user-list/user-list-participants/list-item/service';
+import {
+  isVoiceOnlyUser,
+  UserMediaLockType,
+} from '/imports/ui/components/user-list/user-list-participants/list-item/service';
 import useToggleVoice from '/imports/ui/components/audio/audio-graphql/hooks/useToggleVoice';
 import { CHAT_CREATE_WITH_USER, SET_ROLE, USER_EJECT_CAMERAS } from '/imports/ui/components/user-list/user-list-participants/list-item/mutations';
 import { USER_SET_WHITEBOARD_WRITE_ACCESS } from '/imports/ui/components/presentation/mutations';
@@ -14,6 +18,11 @@ import {
   SET_USER_MEDIA_LOCKED,
 } from '/imports/ui/core/graphql/mutations/userMutations';
 import { useModalRegistration } from '/imports/ui/core/singletons/modalController';
+
+interface PendingMediaLock {
+  mediaType: UserMediaLockType;
+  onConfirm: () => void;
+}
 
 export const mapRaisedHandToUser = (raisedHandUser: RaisedHandUser): User => {
   const voiceData = raisedHandUser.voice || {};
@@ -52,6 +61,7 @@ export const useUserOperations = (userId?: string) => {
   const intl = useIntl();
   const toggleVoiceFunction = useToggleVoice();
   const [chatCreateWithUser] = useMutation(CHAT_CREATE_WITH_USER);
+  const [pendingMediaLock, setPendingMediaLock] = useState<PendingMediaLock | null>(null);
 
   const {
     isOpen: isConfirmationModalOpen,
@@ -69,6 +79,36 @@ export const useUserOperations = (userId?: string) => {
       closeConfirmationModal();
     }
   };
+
+  const {
+    isOpen: isMediaLockConfirmationOpen,
+    open: openMediaLockConfirmation,
+    close: closeMediaLockConfirmation,
+  } = useModalRegistration({
+    id: `mediaLockConfirmation-${userId || 'default'}`,
+    priority: 'low',
+  });
+
+  const setIsMediaLockConfirmationOpen = useCallback((isOpen: boolean) => {
+    if (isOpen) {
+      openMediaLockConfirmation();
+    } else {
+      closeMediaLockConfirmation();
+      setPendingMediaLock(null);
+    }
+  }, [closeMediaLockConfirmation, openMediaLockConfirmation]);
+
+  const requestMediaLockConfirmation = useCallback((
+    mediaType: UserMediaLockType,
+    onConfirm: () => void,
+  ) => {
+    setPendingMediaLock({ mediaType, onConfirm });
+    openMediaLockConfirmation();
+  }, [openMediaLockConfirmation]);
+
+  const confirmMediaLock = useCallback(() => {
+    pendingMediaLock?.onConfirm();
+  }, [pendingMediaLock]);
 
   const [userSetWhiteboardWriteAccess] = useMutation(USER_SET_WHITEBOARD_WRITE_ACCESS);
   const [setPresenter] = useMutation(SET_PRESENTER);
@@ -104,6 +144,13 @@ export const useUserOperations = (userId?: string) => {
     modal: {
       isOpen: isConfirmationModalOpen,
       setIsOpen: setIsConfirmationModalOpen,
+    },
+    mediaLockModal: {
+      isOpen: isMediaLockConfirmationOpen,
+      setIsOpen: setIsMediaLockConfirmationOpen,
+      request: requestMediaLockConfirmation,
+      confirm: confirmMediaLock,
+      mediaType: pendingMediaLock?.mediaType ?? null,
     },
   };
 };

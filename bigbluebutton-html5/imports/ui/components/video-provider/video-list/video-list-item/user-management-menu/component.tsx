@@ -13,6 +13,7 @@ import { useIsChatEnabled, useIsPrivateChatEnabled } from '/imports/ui/services/
 import useWhoIsUnmuted from '/imports/ui/core/hooks/useWhoIsUnmuted';
 import { CURRENT_PRESENTATION_PAGE_SUBSCRIPTION, CurrentPresentationPagesSubscriptionResponse } from '/imports/ui/components/whiteboard/queries';
 import { useUserOperations } from '/imports/ui/components/user-list/hooks/useUserOperations';
+import UserMediaLockConfirmation from '/imports/ui/components/user-list/user-media-lock-confirmation/component';
 import {
   createToolbarOptions,
   generateActionsPermissions,
@@ -39,7 +40,11 @@ const UserManagementMenu: React.FC<UserManagementMenuProps> = ({
   videoContainer,
 }) => {
   const intl = useIntl();
-  const { operations, modal } = useUserOperations(subjectUser.userId);
+  const {
+    operations,
+    modal,
+    mediaLockModal,
+  } = useUserOperations(subjectUser.userId);
   const layoutContextDispatch = layoutDispatch();
   const isChatEnabled = useIsChatEnabled();
   const isPrivateChatEnabled = useIsPrivateChatEnabled();
@@ -107,6 +112,7 @@ const UserManagementMenu: React.FC<UserManagementMenuProps> = ({
     () => modal.setIsOpen(true),
     operations.setRaiseHand,
     operations.setUserMediaLocked,
+    mediaLockModal.request,
   );
 
   // Camera lock exists in both the compact toolbar and the dropdown. Keep one entry here.
@@ -137,6 +143,14 @@ const UserManagementMenu: React.FC<UserManagementMenuProps> = ({
           isOpen={modal.isOpen}
         />
       )}
+      <UserMediaLockConfirmation
+        intl={intl}
+        userName={user.name}
+        mediaType={mediaLockModal.mediaType}
+        isOpen={mediaLockModal.isOpen}
+        setIsOpen={mediaLockModal.setIsOpen}
+        onConfirm={mediaLockModal.confirm}
+      />
       <Styled.MenuWrapper>
         <BBBMenu
           trigger={(

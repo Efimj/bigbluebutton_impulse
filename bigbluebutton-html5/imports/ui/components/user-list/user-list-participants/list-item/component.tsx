@@ -25,6 +25,7 @@ import { UserListItemProps } from './types';
 import UserNameWithSubs from './user-name-with-subs/component';
 import { PluginsContext } from '/imports/ui/components/components-data/plugin-context/context';
 import { useUserOperations } from '/imports/ui/components/user-list/hooks/useUserOperations';
+import UserMediaLockConfirmation from '/imports/ui/components/user-list/user-media-lock-confirmation/component';
 
 const getIconComponent = (icon: PluginSdk.PluginIconType): React.ReactNode => {
   if (typeof icon === 'string') {
@@ -70,7 +71,12 @@ const UserListItem: React.FC<UserListItemProps> = ({
   pageId,
   type,
 }) => {
-  const { intl, operations, modal } = useUserOperations(user.userId);
+  const {
+    intl,
+    operations,
+    modal,
+    mediaLockModal,
+  } = useUserOperations(user.userId);
 
   const { pluginsExtensibleAreasAggregatedState } = useContext(PluginsContext);
   const userItemsFromPlugin = useMemo(() => {
@@ -136,6 +142,7 @@ const UserListItem: React.FC<UserListItemProps> = ({
     () => modal.setIsOpen(true),
     operations.setRaiseHand,
     operations.setUserMediaLocked,
+    mediaLockModal.request,
   );
 
   const userAvatarFiltered = (user.away === true || (user.reactionEmoji && user.reactionEmoji !== 'none')) ? '' : user.avatar;
@@ -166,6 +173,14 @@ const UserListItem: React.FC<UserListItemProps> = ({
           isOpen={modal.isOpen}
         />
       )}
+      <UserMediaLockConfirmation
+        intl={intl}
+        userName={user.name}
+        mediaType={mediaLockModal.mediaType}
+        isOpen={mediaLockModal.isOpen}
+        setIsOpen={mediaLockModal.setIsOpen}
+        onConfirm={mediaLockModal.confirm}
+      />
       <Styled.Avatar
         data-test-presenter={user.presenter ? '' : undefined}
         data-test-avatar="userAvatar"
