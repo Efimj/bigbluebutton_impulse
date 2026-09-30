@@ -165,7 +165,12 @@ const LayoutEngine = () => {
       };
     }
 
-    const { actionBarHeight, actionBarPadding } = DEFAULT_VALUES;
+    const actionBarHeight = isMobile
+      ? DEFAULT_VALUES.mobileActionBarHeight
+      : DEFAULT_VALUES.actionBarHeight;
+    const actionBarPadding = isMobile
+      ? DEFAULT_VALUES.mobileActionBarPadding
+      : DEFAULT_VALUES.actionBarPadding;
 
     const BASE_FONT_SIZE = 14; // 90% font size
     const height = ((actionBarHeight / BASE_FONT_SIZE) * fontSize);
@@ -193,20 +198,15 @@ const LayoutEngine = () => {
   };
 
   const calculatesSidebarNavWidth = () => {
-    const {
-      sidebarNavWidthMobile,
-    } = DEFAULT_VALUES;
-
     const { isOpen } = sidebarNavigationInput;
 
     let width = 0;
     let horizontalSpaceOccupied = 0;
     if (isOpen) {
       if (isMobile) {
-        width = sidebarNavWidthMobile;
-        // The navigation sidebar is a floating window on mobile. We say it does not
-        // occupy any space, so that its width is not taken into account when calculating the
-        // position of other layout elements.
+        // Mobile navigation is rendered in the action bar bottom sheet.
+        // It has no separate rail and therefore occupies no layout space.
+        width = 0;
         horizontalSpaceOccupied = 0;
       } else {
         const margin = windowWidth() * SIDEBAR_NAVIGATION_MARGIN_PERCENTAGE_WIDTH;

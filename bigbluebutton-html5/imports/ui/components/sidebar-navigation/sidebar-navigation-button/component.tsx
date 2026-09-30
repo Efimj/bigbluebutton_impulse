@@ -9,6 +9,7 @@ import TooltipContainer from '/imports/ui/components/common/tooltip/container';
 import { SidebarNavigationButtonProps } from './types';
 import Styled from './styles';
 import { useIsMultiFunctionalModeEnabled } from '/imports/ui/services/features';
+import { useSidebarNavigationDisplay } from './display-context';
 
 const SidebarNavigationButton: React.FC<SidebarNavigationButtonProps> = ({
   panel,
@@ -36,6 +37,7 @@ const SidebarNavigationButton: React.FC<SidebarNavigationButtonProps> = ({
   } = sidebarContentAuxiliaryInput;
   const isInAuxiliaryPanel = isAuxiliaryOpen && sidebarContentPanelAuxiliary === panel;
   const isMultiFunctionalModeEnabled = useIsMultiFunctionalModeEnabled();
+  const { variant, onAction } = useSidebarNavigationDisplay();
 
   const togglePanel = useCallback(() => {
     const willOpen = !isOpened;
@@ -70,7 +72,8 @@ const SidebarNavigationButton: React.FC<SidebarNavigationButtonProps> = ({
     } else if (panel) {
       togglePanel();
     }
-  }, [onClick, togglePanel, isDisabled, panel]);
+    onAction?.();
+  }, [onClick, togglePanel, isDisabled, panel, onAction]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (isDisabled) return;
@@ -83,34 +86,43 @@ const SidebarNavigationButton: React.FC<SidebarNavigationButtonProps> = ({
       } else if (panel) {
         togglePanel();
       }
+      onAction?.();
     }
-  }, [onKeyDown, togglePanel, isDisabled, onClick, panel]);
+  }, [onKeyDown, togglePanel, isDisabled, onClick, panel, onAction]);
+
+  const button = (
+    <Styled.ListItem
+      id={id}
+      accessKey={accessKey}
+      aria-label={label}
+      aria-describedby={ariaDescribedBy}
+      aria-expanded={isOpened}
+      $active={isOpened}
+      role="button"
+      tabIndex={isDisabled ? -1 : 0}
+      data-test={dataTest}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      $hasNotification={hasNotification}
+      $hasPrivateNotification={hasPrivateNotification}
+      $disabled={isDisabled}
+      $locked={isLocked}
+      $variant={variant}
+    >
+      {resolveIcon(iconName)}
+      {variant !== 'rail' && <Styled.Label $variant={variant}>{label}</Styled.Label>}
+      {children}
+    </Styled.ListItem>
+  );
+
+  if (variant !== 'rail') return button;
 
   return (
     <TooltipContainer
       title={label}
       position="right"
     >
-      <Styled.ListItem
-        id={id}
-        accessKey={accessKey}
-        aria-label={label}
-        aria-describedby={ariaDescribedBy}
-        aria-expanded={isOpened}
-        $active={isOpened}
-        role="button"
-        tabIndex={isDisabled ? -1 : 0}
-        data-test={dataTest}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        $hasNotification={hasNotification}
-        $hasPrivateNotification={hasPrivateNotification}
-        $disabled={isDisabled}
-        $locked={isLocked}
-      >
-        {resolveIcon(iconName)}
-        {children}
-      </Styled.ListItem>
+      {button}
     </TooltipContainer>
   );
 };

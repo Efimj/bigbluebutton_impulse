@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { useReactiveVar } from '@apollo/client';
 import React, { useCallback, useEffect } from 'react';
-import deviceInfo from '/imports/utils/deviceInfo';
 import { hasMediaDevicesEventTarget } from '/imports/ui/services/webrtc-base/utils';
 import AudioManager from '/imports/ui/services/audio-manager';
 import useCurrentUser from '/imports/ui/core/hooks/useCurrentUser';
@@ -24,6 +23,9 @@ import useWhoIsTalking from '/imports/ui/core/hooks/useWhoIsTalking';
 import useWhoIsUnmuted from '/imports/ui/core/hooks/useWhoIsUnmuted';
 import useToggleVoice from '/imports/ui/components/audio/audio-graphql/hooks/useToggleVoice';
 import useIsAudioConnected from '/imports/ui/components/audio/audio-graphql/hooks/useIsAudioConnected';
+import { layoutSelect } from '/imports/ui/components/layout/context';
+import { DEVICE_TYPE } from '/imports/ui/components/layout/enums';
+import { Layout } from '/imports/ui/components/layout/layoutTypes';
 
 const AUDIO_INPUT = 'audioinput';
 const AUDIO_OUTPUT = 'audiooutput';
@@ -109,7 +111,7 @@ const InputStreamLiveSelector: React.FC<InputStreamLiveSelectorProps> = ({
   // eslint-disable-next-line no-undef
   const [inputDevices, setInputDevices] = React.useState<InputDeviceInfo[]>([]);
   const [outputDevices, setOutputDevices] = React.useState<MediaDeviceInfo[]>([]);
-  const { isMobile } = deviceInfo;
+  const isMobile = layoutSelect((i: Layout) => i.deviceType === DEVICE_TYPE.MOBILE);
   // @ts-ignore - temporary, while meteor exists in the project
   const { enableDynamicAudioDeviceSelection } = window.meetingClientSettings.public.app;
 
@@ -209,6 +211,7 @@ const InputStreamLiveSelector: React.FC<InputStreamLiveSelectorProps> = ({
             inputStream={inputStream}
             isModerator={isModerator}
             isPresenter={isPresenter}
+            isCompactMobile={isMobile}
           />
         ) : (
           <>
@@ -228,12 +231,15 @@ const InputStreamLiveSelector: React.FC<InputStreamLiveSelectorProps> = ({
                 isPresenter={isPresenter}
               />
             )}
-            <ListenOnly
-              listenOnly={listenOnly}
-              handleLeaveAudio={handleLeaveAudio}
-              meetingIsBreakout={meetingIsBreakout}
-              actAsDeviceSelector={enableDynamicAudioDeviceSelection && isMobile}
-            />
+            {(!isMobile || listenOnly) && (
+              <ListenOnly
+                listenOnly={listenOnly}
+                handleLeaveAudio={handleLeaveAudio}
+                meetingIsBreakout={meetingIsBreakout}
+                actAsDeviceSelector={isMobile}
+                onSelectDevice={() => openAudioSettings()}
+              />
+            )}
           </>
         )
       }

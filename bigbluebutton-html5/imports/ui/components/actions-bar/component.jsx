@@ -18,6 +18,7 @@ import Selector from '/imports/ui/components/common/selector/component';
 import ToggleGroup from '/imports/ui/components/common/toggle-group/component';
 import Separator from '/imports/ui/components/common/separator/component';
 import deviceInfo from '/imports/utils/deviceInfo';
+import MobileActions from './mobile-actions/component';
 
 const intlMessages = defineMessages({
   actionsBarLabel: {
@@ -169,6 +170,101 @@ class ActionsBar extends PureComponent {
 
     const shouldShowOptionsButton = (isPresentationEnabled && isThereCurrentPresentation)
       || isSharingVideo || hasScreenshare || isSharedNotesPinned;
+
+    if (shouldRenderActionBar && isMobile) {
+      const audioControl = <AudioControlsContainer />;
+      const videoControl = shouldShowVideoButton && enableVideo
+        ? <JoinVideoOptionsContainer />
+        : null;
+      const handControl = isRaiseHandEnabled ? <RaiseHandButtonContainer /> : null;
+      const reactionControl = isReactionsButtonEnabled ? this.renderReactionsButton() : null;
+
+      const additionalActions = (
+        <>
+          {this.renderPluginsActionBarItems(ActionsBarPosition.LEFT)}
+          <AudioCaptionsButtonContainer />
+          {shouldShowPresentationButton && (
+            <ScreenshareButtonContainer {...{
+              amIPresenter,
+              isConnected,
+            }}
+            />
+          )}
+          {this.renderPluginsActionBarItems(ActionsBarPosition.RIGHT)}
+          <Styled.PresentationButtonsWrapper>
+            {shouldShowPresentationButton && shouldShowOptionsButton
+              && (
+                <PresentationOptionsContainer
+                  presentationIsOpen={presentationIsOpen}
+                  setPresentationIsOpen={setPresentationIsOpen}
+                  layoutContextDispatch={layoutContextDispatch}
+                  hasPresentation={isThereCurrentPresentation}
+                  hasExternalVideo={isSharingVideo}
+                  hasScreenshare={hasScreenshare}
+                  hasPinnedSharedNotes={isSharedNotesPinned}
+                  hasGenericContent={hasGenericContent}
+                  hasCameraAsContent={hasCameraAsContent}
+                  isDarkThemeEnabled={isDarkThemeEnabled}
+                />
+              )}
+            {((amIPresenter || amIModerator)
+              && shouldShowOptionsButton) && (<Styled.Divider />)}
+            <MediaAreaContainer {...{
+              amIPresenter,
+              amIModerator,
+              isPollingEnabled,
+              allowExternalVideo,
+              intl,
+              isSharingVideo,
+              stopExternalVideoShare,
+              isTimerActive,
+              isTimerEnabled,
+              isConnected,
+              presentationIsOpen,
+              hasCameraAsContent,
+              setPresentationFitToWidth,
+              hasPresentation: isThereCurrentPresentation,
+            }}
+            />
+          </Styled.PresentationButtonsWrapper>
+          {showScreenshareQuickSwapButton && <SwapPresentationButton />}
+        </>
+      );
+
+      return (
+        <Styled.ActionsBarWrapper
+          id="ActionsBar"
+          role="region"
+          aria-label={intl.formatMessage(intlMessages.actionsBarLabel)}
+          aria-hidden={ariaHidden}
+          style={{
+            position: 'absolute',
+            top: `calc(${actionsBarStyle.top}px - env(safe-area-inset-bottom, 0px))`,
+            left: actionsBarStyle.left,
+            height: `calc(${actionsBarStyle.height}px + env(safe-area-inset-bottom, 0px))`,
+            width: actionsBarStyle.width,
+            padding: actionsBarStyle.padding,
+            paddingBottom: `calc(${actionsBarStyle.padding}px + env(safe-area-inset-bottom, 0px))`,
+            overflow: 'hidden',
+            backgroundColor: 'transparent',
+          }}
+        >
+          <h2 className="sr-only">{intl.formatMessage(intlMessages.actionsBarLabel)}</h2>
+          <Styled.ActionsBar
+            ref={this.actionsBarRef}
+            style={{ height: actionsBarStyle.innerHeight }}
+          >
+            <MobileActions
+              audioControl={audioControl}
+              videoControl={videoControl}
+              handControl={handControl}
+              reactionControl={reactionControl}
+              additionalActions={additionalActions}
+            />
+          </Styled.ActionsBar>
+        </Styled.ActionsBarWrapper>
+      );
+    }
 
     return shouldRenderActionBar && (
       <Styled.ActionsBarWrapper

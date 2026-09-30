@@ -21,6 +21,7 @@ interface ListenOnlyProps {
   handleLeaveAudio: (meetingIsBreakout: boolean) => void;
   meetingIsBreakout: boolean;
   actAsDeviceSelector: boolean;
+  onSelectDevice?: () => void;
 }
 
 export const ListenOnly: React.FC<ListenOnlyProps> = ({
@@ -28,6 +29,7 @@ export const ListenOnly: React.FC<ListenOnlyProps> = ({
   handleLeaveAudio,
   meetingIsBreakout,
   actAsDeviceSelector,
+  onSelectDevice,
 }) => {
   const intl = useIntl();
   const leaveAudioShourtcut = useShortcut('leaveAudio');
@@ -46,7 +48,7 @@ export const ListenOnly: React.FC<ListenOnlyProps> = ({
       size={deviceInfo.isMobile ? 'md' : 'lg'}
       circle
       onClick={actAsDeviceSelector
-        ? () => null
+        ? onSelectDevice
         : (e: React.MouseEvent<HTMLButtonElement>) => {
           e.stopPropagation();
           handleLeaveAudio(meetingIsBreakout);

@@ -130,7 +130,7 @@ const SidebarNavigationContainer = () => {
     }
   }, [intl]);
 
-  if (sidebarNavigation.display === false || !width || !height) return null;
+  if (isMobile || sidebarNavigation.display === false || !width || !height) return null;
 
   return (
     <SidebarNavigation

@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { PANELS } from '/imports/ui/components/layout/enums';
 import { PluginIconType } from 'bigbluebutton-html-plugin-sdk';
+import { SidebarNavigationDisplayVariant } from './display-context';
 
 export interface SidebarNavigationButtonProps {
   panel?: typeof PANELS[keyof typeof PANELS];
@@ -27,4 +28,5 @@ export interface ListItemProps {
   $hasPrivateNotification?: boolean;
   $disabled?: boolean;
   $locked?: boolean;
+  $variant?: SidebarNavigationDisplayVariant;
 }

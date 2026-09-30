@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {
+  useState, useEffect, useRef, useCallback,
+} from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import { Resizable } from 're-resizable';
 import Draggable, { DraggableEvent } from 'react-draggable';
@@ -28,6 +30,7 @@ import useSettings from '../../services/settings/hooks/useSettings';
 import { SETTINGS } from '../../services/settings/enums';
 import { INITIAL_INPUT_STATE } from '../layout/initState';
 import { contentSidebarMarginToMedia } from '../../stylesheets/styled-components/general';
+import deviceInfo from '/imports/utils/deviceInfo';
 
 const intlMessages = defineMessages({
   camerasAriaLabel: {
@@ -38,6 +41,8 @@ const intlMessages = defineMessages({
 
 const CAMERA_DOCK_GRID_SNAP_TOLERANCE = 12;
 const CAMERA_DOCK_GRID_SETTLE_DELAY = 100;
+const CAMERA_DOCK_TOUCH_LONG_PRESS_DELAY = 500;
+const CAMERA_DOCK_TOUCH_MOVE_TOLERANCE = 12;
 const CAMERA_DOCK_DRAG_CANCEL_SELECTOR = [
   'button',
   'a',
@@ -49,6 +54,15 @@ const CAMERA_DOCK_DRAG_CANCEL_SELECTOR = [
   '[contenteditable="true"]',
   '[data-camera-dock-no-drag]',
 ].join(', ');
+
+interface TouchDragState {
+  identifier: number;
+  startX: number;
+  startY: number;
+  armed: boolean;
+  moved: boolean;
+  longPressTimeout: ReturnType<typeof setTimeout> | null;
+}
 
 const snapCameraDockDimensionToGrid = (
   dockSize: number,
@@ -93,14 +107,24 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [resizeStart, setResizeStart] = useState({ width: 0, height: 0 });
   const [cameraMaxWidth, setCameraMaxWidth] = useState(0);
-  const [draggedAtLeastOneTime, setDraggedAtLeastOneTime] = useState(false);
+  const [touchDragOffset, setTouchDragOffset] = useState({ x: 0, y: 0 });
   const cameraDockRef = useRef(cameraDock);
   const cameraSizeRef = useRef(cameraSize);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const touchDragRef = useRef<TouchDragState | null>(null);
+  const draggedAtLeastOneTimeRef = useRef(false);
+  const isResizingRef = useRef(isResizing);
+  const isFullScreenRef = useRef(isFullScreen);
+  const bodyOverflowRef = useRef('');
+  const suppressTouchClickRef = useRef(false);
+  const suppressTouchClickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraDockGridSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intl = useIntl();
 
   cameraDockRef.current = cameraDock;
   cameraSizeRef.current = cameraSize;
+  isResizingRef.current = isResizing;
+  isFullScreenRef.current = isFullScreen;
 
   const lastSize = Storage.getItem('webcamSize') || { width: 0, height: 0 };
   const { height: lastHeight } = lastSize as { width: number, height: number };
@@ -226,22 +250,26 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
     });
   };
 
-  const handleWebcamDragStart = () => {
+  const handleWebcamDragStart = useCallback(() => {
     setIsDragging(true);
+    bodyOverflowRef.current = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     layoutContextDispatch({
       type: ACTIONS.SET_CAMERA_DOCK_IS_DRAGGING,
       value: true,
     });
-  };
+  }, [layoutContextDispatch]);
 
-  const handleWebcamDragStop = (e: DraggableEvent) => {
+  const finishWebcamDrag = useCallback((dropAreaId?: string, hasMoved = false) => {
     setIsDragging(false);
-    setDraggedAtLeastOneTime(false);
-    document.body.style.overflow = 'auto';
-    const dropAreaId = (e.target as HTMLDivElement).id;
+    setTouchDragOffset({ x: 0, y: 0 });
+    document.body.style.overflow = bodyOverflowRef.current;
 
-    if (Object.values(CAMERADOCK_POSITION).includes(dropAreaId) && draggedAtLeastOneTime) {
+    if (
+      dropAreaId
+      && Object.values(CAMERADOCK_POSITION).includes(dropAreaId)
+      && hasMoved
+    ) {
       const layout = document.getElementById('layout');
       layout?.setAttribute('data-cam-position', dropAreaId);
 
@@ -255,7 +283,161 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
       type: ACTIONS.SET_CAMERA_DOCK_IS_DRAGGING,
       value: false,
     });
+    draggedAtLeastOneTimeRef.current = false;
+  }, [layoutContextDispatch]);
+
+  const handleWebcamDragStop = (e: DraggableEvent) => {
+    const dropAreaId = (e.target as HTMLDivElement).id;
+    finishWebcamDrag(dropAreaId, draggedAtLeastOneTimeRef.current);
   };
+
+  useEffect(() => {
+    const dragHandle = dragHandleRef.current;
+    if (!deviceInfo.isMobile || !dragHandle) return undefined;
+
+    const clearLongPressTimeout = () => {
+      if (touchDragRef.current?.longPressTimeout) {
+        clearTimeout(touchDragRef.current.longPressTimeout);
+        touchDragRef.current.longPressTimeout = null;
+      }
+    };
+
+    const resetTouchDrag = () => {
+      clearLongPressTimeout();
+      touchDragRef.current = null;
+      setTouchDragOffset({ x: 0, y: 0 });
+    };
+
+    const findTouch = (touches: TouchList, identifier: number) => (
+      Array.from(touches).find((touch) => touch.identifier === identifier)
+    );
+
+    const handleTouchStart = (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      if (
+        event.touches.length !== 1
+        || !cameraDockRef.current.isDraggable
+        || isResizingRef.current
+        || isFullScreenRef.current
+        || target.closest(CAMERA_DOCK_DRAG_CANCEL_SELECTOR)
+      ) return;
+
+      const touch = event.touches[0];
+      const touchDrag: TouchDragState = {
+        identifier: touch.identifier,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        armed: false,
+        moved: false,
+        longPressTimeout: null,
+      };
+
+      touchDrag.longPressTimeout = setTimeout(() => {
+        if (touchDragRef.current !== touchDrag) return;
+        touchDrag.longPressTimeout = null;
+        touchDrag.armed = true;
+        draggedAtLeastOneTimeRef.current = false;
+        handleWebcamDragStart();
+      }, CAMERA_DOCK_TOUCH_LONG_PRESS_DELAY);
+      touchDragRef.current = touchDrag;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const touchDrag = touchDragRef.current;
+      if (!touchDrag) return;
+
+      const touch = findTouch(event.touches, touchDrag.identifier);
+      if (!touch) return;
+
+      const deltaX = touch.clientX - touchDrag.startX;
+      const deltaY = touch.clientY - touchDrag.startY;
+
+      if (!touchDrag.armed) {
+        if (
+          Math.hypot(deltaX, deltaY)
+          > CAMERA_DOCK_TOUCH_MOVE_TOLERANCE
+        ) resetTouchDrag();
+        return;
+      }
+
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+      touchDrag.moved = true;
+      draggedAtLeastOneTimeRef.current = true;
+      setTouchDragOffset({ x: deltaX, y: deltaY });
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touchDrag = touchDragRef.current;
+      if (!touchDrag) return;
+
+      const touch = findTouch(event.changedTouches, touchDrag.identifier);
+      if (!touch) return;
+
+      if (touchDrag.armed) {
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+
+        const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropAreaId = dropTarget
+          ?.closest<HTMLElement>('[data-test^="dropArea-"]')
+          ?.id;
+
+        suppressTouchClickRef.current = true;
+        if (suppressTouchClickTimeoutRef.current) {
+          clearTimeout(suppressTouchClickTimeoutRef.current);
+        }
+        suppressTouchClickTimeoutRef.current = setTimeout(() => {
+          suppressTouchClickRef.current = false;
+          suppressTouchClickTimeoutRef.current = null;
+        }, 700);
+
+        finishWebcamDrag(dropAreaId, touchDrag.moved);
+      }
+
+      resetTouchDrag();
+    };
+
+    const handleTouchCancel = () => {
+      const touchDrag = touchDragRef.current;
+      if (touchDrag?.armed) finishWebcamDrag(undefined, false);
+      resetTouchDrag();
+    };
+
+    const handleClickCapture = (event: MouseEvent) => {
+      if (!suppressTouchClickRef.current) return;
+      suppressTouchClickRef.current = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
+    dragHandle.addEventListener('touchstart', handleTouchStart, { passive: true });
+    dragHandle.addEventListener('touchmove', handleTouchMove, { passive: false });
+    dragHandle.addEventListener('touchend', handleTouchEnd, { passive: false });
+    dragHandle.addEventListener('touchcancel', handleTouchCancel);
+    dragHandle.addEventListener('click', handleClickCapture, true);
+
+    return () => {
+      clearLongPressTimeout();
+      if (suppressTouchClickTimeoutRef.current) {
+        clearTimeout(suppressTouchClickTimeoutRef.current);
+        suppressTouchClickTimeoutRef.current = null;
+      }
+      if (touchDragRef.current?.armed) {
+        document.body.style.overflow = bodyOverflowRef.current;
+        layoutContextDispatch({
+          type: ACTIONS.SET_CAMERA_DOCK_IS_DRAGGING,
+          value: false,
+        });
+      }
+      touchDragRef.current = null;
+      dragHandle.removeEventListener('touchstart', handleTouchStart);
+      dragHandle.removeEventListener('touchmove', handleTouchMove);
+      dragHandle.removeEventListener('touchend', handleTouchEnd);
+      dragHandle.removeEventListener('touchcancel', handleTouchCancel);
+      dragHandle.removeEventListener('click', handleClickCapture, true);
+    };
+  }, [finishWebcamDrag, handleWebcamDragStart, layoutContextDispatch]);
 
   const draggableOffset = {
     left: isDragging && (isCameraTopOrBottom || isCameraSidebar)
@@ -296,19 +478,25 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
           bounds="html"
           onStart={handleWebcamDragStart}
           onDrag={() => {
-            if (!draggedAtLeastOneTime) {
-              setDraggedAtLeastOneTime(true);
-            }
+            draggedAtLeastOneTimeRef.current = true;
           }}
           onStop={handleWebcamDragStop}
           onMouseDown={
-            cameraDock.isDraggable ? (e) => e.preventDefault() : undefined
+            cameraDock.isDraggable && !deviceInfo.isMobile
+              ? (e) => e.preventDefault()
+              : undefined
           }
-          disabled={!cameraDock.isDraggable || isResizing || isFullScreen}
+          disabled={
+            !cameraDock.isDraggable
+            || isResizing
+            || isFullScreen
+            || deviceInfo.isMobile
+          }
           position={
             {
-              x: cameraDock.left - cameraDock.right + draggableOffset.left,
-              y: cameraDock.top + draggableOffset.top,
+              x: cameraDock.left - cameraDock.right
+                + draggableOffset.left + touchDragOffset.x,
+              y: cameraDock.top + draggableOffset.top + touchDragOffset.y,
             }
           }
         >
@@ -380,11 +568,16 @@ const WebcamComponent: React.FC<WebcamComponentProps> = ({
             }}
           >
             <Styled.Draggable
+              ref={dragHandleRef}
               $isDraggable={!!cameraDock.isDraggable && !isFullScreen && !isDragging}
               $isDragging={isDragging}
               id="cameraDock"
               role="region"
-              draggable={cameraDock.isDraggable && !isFullScreen ? 'true' : undefined}
+              draggable={
+                cameraDock.isDraggable && !isFullScreen && !deviceInfo.isMobile
+                  ? 'true'
+                  : undefined
+              }
               style={{
                 width: isIphone ? mobileWidth : desktopWidthWithSidebar,
                 height: isIphone ? mobileHeight : isDesktopHeight,

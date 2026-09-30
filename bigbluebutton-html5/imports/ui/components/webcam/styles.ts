@@ -6,6 +6,8 @@ const Draggable = styled.div<{
 }>`
   ${({ $isDraggable }) => $isDraggable && css`
     cursor: grab;
+    user-select: none;
+    -webkit-touch-callout: none;
 
     &:active {
       cursor: grabbing;

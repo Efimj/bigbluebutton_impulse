@@ -14,6 +14,10 @@ import { listItemBgHover } from '/imports/ui/stylesheets/styled-components/palet
 import VideoService from '../service';
 import Styled from './styles';
 import { useModalRegistration } from '/imports/ui/core/singletons/modalController';
+import { layoutSelect } from '/imports/ui/components/layout/context';
+import { DEVICE_TYPE } from '/imports/ui/components/layout/enums';
+import { Layout } from '/imports/ui/components/layout/layoutTypes';
+import { subscribeOpenVideoSettings } from '/imports/ui/components/actions-bar/mobile-actions/service';
 
 const intlMessages = defineMessages({
   videoSettings: {
@@ -85,6 +89,7 @@ const JoinVideoButton: React.FC<JoinVideoButtonProps> = ({
   stopVideo,
   videoConnecting,
 }) => {
+  const isMobileLayout = layoutSelect((i: Layout) => i.deviceType === DEVICE_TYPE.MOBILE);
   const { isMobile } = deviceInfo;
   const isMobileSharingCamera = hasVideoStream && isMobile;
   const isDesktopSharingCamera = hasVideoStream && !isMobile;
@@ -135,7 +140,7 @@ const JoinVideoButton: React.FC<JoinVideoButtonProps> = ({
         break;
       case 'connected':
       default:
-        if (exitVideo()) {
+        if ((hasVideoStream && isMobileLayout) || exitVideo()) {
           PreviewService.clearStreams();
           exit();
         } else {
@@ -151,10 +156,17 @@ const JoinVideoButton: React.FC<JoinVideoButtonProps> = ({
     setIsVideoPreviewModalOpen(true);
   };
 
+  useEffect(
+    () => subscribeOpenVideoSettings(() => handleOpenAdvancedOptions()),
+    [handleOpenAdvancedOptions],
+  );
+
   const getMessageFromStatus = () => {
     let statusMessage = status;
     if (status !== 'videoConnecting') {
-      statusMessage = exitVideo() ? 'leaveVideo' : 'joinVideo';
+      statusMessage = ((hasVideoStream && isMobileLayout) || exitVideo())
+        ? 'leaveVideo'
+        : 'joinVideo';
     }
     return statusMessage;
   };
@@ -164,6 +176,7 @@ const JoinVideoButton: React.FC<JoinVideoButtonProps> = ({
     : intl.formatMessage(intlMessages[getMessageFromStatus() as keyof typeof intlMessages]);
 
   const renderUserActions = () => {
+    if (isMobileLayout) return null;
     const actions = [];
 
     if (shouldEnableWebcamSelectorButton) {

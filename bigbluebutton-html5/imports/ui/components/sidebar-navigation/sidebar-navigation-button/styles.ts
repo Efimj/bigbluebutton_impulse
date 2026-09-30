@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import {
   borderSize,
   borderSizeSmall,
@@ -36,6 +36,35 @@ export const ListItem = styled.div<ListItemProps>`
   width: ${navigationSidebarListItemsWidth};
   aspect-ratio: 1 / 1;
   border-radius: 50%;
+
+  ${({ $variant }) => $variant === 'sheet' && css`
+    width: 100%;
+    min-height: 5rem;
+    aspect-ratio: auto;
+    border-radius: .75rem;
+    padding: .625rem .35rem;
+    gap: .35rem;
+    background-color: ${listItemBgHover};
+
+    > i {
+      font-size: 1.5rem;
+    }
+  `}
+
+  ${({ $variant }) => $variant === 'primary' && css`
+    width: 100%;
+    min-width: 2.75rem;
+    min-height: 3.5rem;
+    aspect-ratio: auto;
+    border-radius: .5rem;
+    gap: .15rem;
+    color: ${colorWhite};
+
+    > i {
+      font-size: 1.35rem;
+      color: ${colorWhite};
+    }
+  `}
 
   > i {
     font-size: ${navigationSidebarIconSize};
@@ -125,6 +154,19 @@ export const ListItem = styled.div<ListItemProps>`
   }
 `;
 
+export const Label = styled.span<{ $variant?: string }>`
+  width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: ${({ $variant }) => ($variant === 'primary' ? '.68rem' : '.75rem')};
+  font-weight: 500;
+  line-height: 1.15;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 export default {
   ListItem,
+  Label,
 };

@@ -101,6 +101,7 @@ interface LiveSelectionProps extends MuteToggleProps {
   inputStream: string;
   isModerator: boolean;
   isPresenter: boolean;
+  isCompactMobile: boolean;
 }
 
 export const LiveSelection: React.FC<LiveSelectionProps> = ({
@@ -122,6 +123,7 @@ export const LiveSelection: React.FC<LiveSelectionProps> = ({
   inputStream,
   isModerator,
   isPresenter,
+  isCompactMobile,
 }) => {
   const intl = useIntl();
 
@@ -336,8 +338,8 @@ export const LiveSelection: React.FC<LiveSelectionProps> = ({
   });
 
   const customStyles = { top: '-1rem' };
-  const { isMobile } = deviceInfo;
   const noInputDevice = inputDeviceId === 'listen-only';
+  const { isMobile } = deviceInfo;
 
   return (
     <>
@@ -350,7 +352,7 @@ export const LiveSelection: React.FC<LiveSelectionProps> = ({
           aria-hidden="true"
         />
       ) : null}
-      {(shouldTreatAsMicrophone() && isMobile) && (
+      {(shouldTreatAsMicrophone() && isCompactMobile) && (
         <MuteToggle
           talking={talking}
           muted={muted}
@@ -366,56 +368,67 @@ export const LiveSelection: React.FC<LiveSelectionProps> = ({
           isPresenter={isPresenter}
         />
       )}
-      <BBBMenu
-        customStyles={!isMobile ? customStyles : null}
-        trigger={(
-          <Styled.RelativePositioningContainer>
-            {shouldTreatAsMicrophone() && !isMobile
-              ? (
-                <MuteToggle
-                  talking={talking}
-                  muted={muted}
-                  disabled={disabled || isAudioLocked}
-                  isAudioLocked={isAudioLocked}
-                  toggleMuteMicrophone={toggleMuteMicrophone}
-                  away={away}
-                  noInputDevice={noInputDevice}
-                  openAudioSettings={openAudioSettings}
-                  showMutedAlert={showMutedAlert}
-                  inputStream={inputStream}
-                  isModerator={isModerator}
-                  isPresenter={isPresenter}
-                />
-              )
-              : (
-                <ListenOnly
-                  listenOnly={listenOnly}
-                  handleLeaveAudio={handleLeaveAudio}
-                  meetingIsBreakout={meetingIsBreakout}
-                  actAsDeviceSelector={isMobile}
-                />
-              )}
-            <Styled.AudioDropdown
-              data-test="audioDropdownMenu"
-              emoji="device_list_selector"
-              label={intl.formatMessage(intlMessages.changeAudioDevice)}
-              hideLabel
-              tabIndex={0}
-            />
-          </Styled.RelativePositioningContainer>
-        )}
-        actions={!isAudioLocked ? dropdownListComplete : [leaveAudioOption]}
-        opts={{
-          id: 'audio-selector-dropdown-menu',
-          keepMounted: true,
-          transitionDuration: 0,
-          elevation: 3,
-          getcontentanchorel: null,
-          fullwidth: 'true',
-          anchorOrigin: { vertical: 'top', horizontal: 'center' },
-          transformOrigin: { vertical: 'bottom', horizontal: 'center' },
-        }}
-      />
+      {(isCompactMobile && !shouldTreatAsMicrophone()) && (
+        <ListenOnly
+          listenOnly={listenOnly}
+          handleLeaveAudio={handleLeaveAudio}
+          meetingIsBreakout={meetingIsBreakout}
+          actAsDeviceSelector
+          onSelectDevice={() => openAudioSettings()}
+        />
+      )}
+      {!isCompactMobile && (
+        <BBBMenu
+          customStyles={!isMobile ? customStyles : null}
+          trigger={(
+            <Styled.RelativePositioningContainer>
+              {shouldTreatAsMicrophone() && !isMobile
+                ? (
+                  <MuteToggle
+                    talking={talking}
+                    muted={muted}
+                    disabled={disabled || isAudioLocked}
+                    isAudioLocked={isAudioLocked}
+                    toggleMuteMicrophone={toggleMuteMicrophone}
+                    away={away}
+                    noInputDevice={noInputDevice}
+                    openAudioSettings={openAudioSettings}
+                    showMutedAlert={showMutedAlert}
+                    inputStream={inputStream}
+                    isModerator={isModerator}
+                    isPresenter={isPresenter}
+                  />
+                )
+                : (
+                  <ListenOnly
+                    listenOnly={listenOnly}
+                    handleLeaveAudio={handleLeaveAudio}
+                    meetingIsBreakout={meetingIsBreakout}
+                    actAsDeviceSelector={false}
+                  />
+                )}
+              <Styled.AudioDropdown
+                data-test="audioDropdownMenu"
+                emoji="device_list_selector"
+                label={intl.formatMessage(intlMessages.changeAudioDevice)}
+                hideLabel
+                tabIndex={0}
+              />
+            </Styled.RelativePositioningContainer>
+          )}
+          actions={!isAudioLocked ? dropdownListComplete : [leaveAudioOption]}
+          opts={{
+            id: 'audio-selector-dropdown-menu',
+            keepMounted: true,
+            transitionDuration: 0,
+            elevation: 3,
+            getcontentanchorel: null,
+            fullwidth: 'true',
+            anchorOrigin: { vertical: 'top', horizontal: 'center' },
+            transformOrigin: { vertical: 'bottom', horizontal: 'center' },
+          }}
+        />
+      )}
     </>
   );
 };

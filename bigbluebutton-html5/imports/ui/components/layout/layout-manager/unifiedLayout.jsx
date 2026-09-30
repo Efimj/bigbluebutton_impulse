@@ -296,6 +296,7 @@ const UnifiedLayout = (props) => {
 
   const isSideBySideCamerasEnforced = () => deviceInfo.isPhoneLandscape()
     && cameraDockInput.numCameras > 0
+    && cameraDockInput.position === CAMERADOCK_POSITION.CONTENT_RIGHT
     && presentationInput.isOpen
     && !isMediaContentOff();
 
@@ -827,7 +828,7 @@ const UnifiedLayout = (props) => {
         left: cameraDockBounds.left,
         right: cameraDockBounds.right,
         tabOrder: 4,
-        isDraggable: !isMobile && !isTablet && !isCameraDockLocked && isMediaOpen,
+        isDraggable: isMediaOpen,
         resizableEdge: {
           top:
           canResizeCameraDock

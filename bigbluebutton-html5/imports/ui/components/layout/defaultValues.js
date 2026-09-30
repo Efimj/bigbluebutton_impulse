@@ -34,6 +34,8 @@ const DEFAULT_VALUES = {
 
   actionBarHeight: 42,
   actionBarPadding: 11.2,
+  mobileActionBarHeight: 68,
+  mobileActionBarPadding: 8,
   actionBarTabOrder: 6,
 
   sidebarNavWidthMobile: 48, // px

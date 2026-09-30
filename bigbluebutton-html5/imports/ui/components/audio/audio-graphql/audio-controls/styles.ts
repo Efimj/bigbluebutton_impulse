@@ -74,8 +74,14 @@ const Container = styled.div`
   position: relative;
 `;
 
+const MobileControl = styled.div`
+  position: relative;
+  display: flex;
+`;
+
 export default {
   LeaveButtonWithoutLiveStreamSelector,
   MuteToggleButton,
   Container,
+  MobileControl,
 };

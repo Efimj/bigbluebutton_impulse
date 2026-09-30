@@ -19,6 +19,10 @@ import connectionStatus from '/imports/ui/core/graphql/singletons/connectionStat
 import useIsAudioConnected from '/imports/ui/components/audio/audio-graphql/hooks/useIsAudioConnected';
 import { listItemBgHover } from '/imports/ui/stylesheets/styled-components/palette';
 import { useModalRegistration } from '/imports/ui/core/singletons/modalController';
+import { layoutSelect } from '/imports/ui/components/layout/context';
+import { DEVICE_TYPE } from '/imports/ui/components/layout/enums';
+import { Layout } from '/imports/ui/components/layout/layoutTypes';
+import { subscribeOpenAudioSettings } from '/imports/ui/components/actions-bar/mobile-actions/service';
 
 const intlMessages = defineMessages({
   joinAudio: {
@@ -65,6 +69,7 @@ const AudioControls: React.FC<AudioControlsProps> = ({
   audioInputDevice,
 }) => {
   const intl = useIntl();
+  const isMobileLayout = layoutSelect((i: Layout) => i.deviceType === DEVICE_TYPE.MOBILE);
   const joinAudioShortcut = useShortcut('joinAudio');
   const echoTestIntervalRef = React.useRef<ReturnType<typeof setTimeout>>();
 
@@ -102,7 +107,9 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     setAudioModalContent('settings');
     setAudioModalProps(props);
     setIsAudioModalOpen(true);
-  }, []);
+  }, [setIsAudioModalOpen]);
+
+  useEffect(() => subscribeOpenAudioSettings(() => openAudioSettings()), [openAudioSettings]);
 
   const joinButton = useMemo(() => {
     const joinAudioLabel = away ? intlMessages.joinAudioAndSetActive : intlMessages.joinAudio;
@@ -156,9 +163,17 @@ const AudioControls: React.FC<AudioControlsProps> = ({
     setAudioModalProps(null);
   }, []);
 
+  const audioControl = !inAudio
+    ? joinButton
+    : <InputStreamLiveSelectorContainer openAudioSettings={openAudioSettings} />;
+
   return (
     <>
-      {!inAudio ? joinButton : <InputStreamLiveSelectorContainer openAudioSettings={openAudioSettings} />}
+      {isMobileLayout ? (
+        <Styled.MobileControl>
+          {audioControl}
+        </Styled.MobileControl>
+      ) : audioControl}
       {/* Below wrapper is to prevent the modal's anchor from affecting actions bar buttons spacing */}
       <div style={{ position: 'absolute' }}>
         {isAudioModalOpen && (
