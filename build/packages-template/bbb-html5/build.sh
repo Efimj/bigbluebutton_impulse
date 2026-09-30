@@ -52,7 +52,9 @@ HASH=$(ls | grep -Eo 'bundle\.[a-f0-9]{20}\.js' | head -n 1 | grep -Eo '[a-f0-9]
 if [ -z "$HASH" ]; then
   echo "Bundle hash not found."
 else
-  for FILE in *.safari.js *.safari.js.map; do
+  shopt -s nullglob
+  for FILE in *.safari.js *.safari.js.gz *.safari.js.br \
+    *.safari.js.map *.safari.js.map.gz *.safari.js.map.br; do
     if [[ "$FILE" == *"$HASH"* ]]; then
       continue
     fi
@@ -64,6 +66,12 @@ else
     echo "Renaming $FILE → $NEW_NAME"
     mv "$FILE" "$NEW_NAME"
   done
+  shopt -u nullglob
+
+  if [ ! -s "bundle.${HASH}.safari.js" ]; then
+    echo "Safari bundle bundle.${HASH}.safari.js was not generated." >&2
+    exit 1
+  fi
 fi
 cd ..
 

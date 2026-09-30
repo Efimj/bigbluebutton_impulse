@@ -1,15 +1,27 @@
 # running in production (static assets)
+location ~ "^/html5client/(?<bbb_hashed_bundle>(?:[0-9]+\.)?bundle\.[a-f0-9]{20}(?:\.safari)?\.js)$" {
+    gzip_static on;
+    alias /usr/share/bigbluebutton/html5-client/$bbb_hashed_bundle;
+    default_type application/javascript;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    add_header Vary "Accept-Encoding" always;
+}
+
 location /html5client {
     gzip_static on;
     alias /usr/share/bigbluebutton/html5-client/;
     index index.html;
+    add_header Cache-Control "no-cache" always;
     try_files $uri $uri/ =404;
 }
 
 location /html5client/locales {
-  alias /usr/share/bigbluebutton/html5-client/locales;
-  autoindex on;
-  autoindex_format json;
+    gzip_static on;
+    alias /usr/share/bigbluebutton/html5-client/locales;
+    add_header Cache-Control "no-cache" always;
+    add_header Vary "Accept-Encoding" always;
+    autoindex on;
+    autoindex_format json;
 }
 
 location /html5client/wasm {
@@ -18,4 +30,6 @@ location /html5client/wasm {
     }
     gzip_static on;
     alias /usr/share/bigbluebutton/html5-client/wasm;
+    add_header Cache-Control "no-cache" always;
+    add_header Vary "Accept-Encoding" always;
 }

@@ -2,6 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -157,11 +158,28 @@ const config = {
 };
 
 if (env === prodEnv) {
-  config.plugins.push(new CompressionPlugin());
+  config.plugins.push(
+    new CompressionPlugin({
+      filename: '[path][base].gz',
+      algorithm: 'gzip',
+    }),
+    new CompressionPlugin({
+      filename: '[path][base].br',
+      algorithm: 'brotliCompress',
+      test: /\.(js|css|html|json|svg|wasm)$/i,
+      compressionOptions: {
+        params: {
+          [zlib.constants.BROTLI_PARAM_QUALITY]: 9,
+        },
+      },
+      threshold: 0,
+      minRatio: 1,
+    }),
+  );
   config.mode = prodEnv;
   config.optimization = {
     minimize: true,
-    minimizer: isSafariTarget ? [] : [new TerserPlugin({
+    minimizer: [new TerserPlugin({
       // Preserve the `startScreensharing` function name in the minified
       // bundle. The tablet app (imports/ui/services/mobile-app/index.js)
       // inspects the JS stack trace for this name to route screen sharing

@@ -1,6 +1,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 300;
   src: local('Source Sans Pro Light'), local('SourceSansPro-Light'),
@@ -10,6 +11,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 300;
   src: local('Source Sans Pro Light'), local('SourceSansPro-Light'),
@@ -19,6 +21,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 300;
   src: local('Source Sans Pro Light'), local('SourceSansPro-Light'),
@@ -28,6 +31,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 400;
   src: local('Source Sans Pro'), local('SourceSansPro-Regular'),
@@ -37,6 +41,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 400;
   src: local('Source Sans Pro'), local('SourceSansPro-Regular'),
@@ -46,6 +51,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 400;
   src: local('Source Sans Pro'), local('SourceSansPro-Regular'),
@@ -55,6 +61,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 600;
   src: local('Source Sans Pro Semibold'), local('SourceSansPro-Semibold'),
@@ -64,6 +71,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 600;
   src: local('Source Sans Pro Semibold'), local('SourceSansPro-Semibold'),
@@ -73,6 +81,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 600;
   src: local('Source Sans Pro Semibold'), local('SourceSansPro-Semibold'),
@@ -82,6 +91,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 700;
   src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'),
@@ -91,6 +101,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 700;
   src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'),
@@ -100,6 +111,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: normal;
   font-weight: 700;
   src: local('Source Sans Pro Bold'), local('SourceSansPro-Bold'),
@@ -109,6 +121,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 300;
   src: local('Source Sans Pro Light Italic'), local('SourceSansPro-LightIt'),
@@ -118,6 +131,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 300;
   src: local('Source Sans Pro Light Italic'), local('SourceSansPro-LightIt'),
@@ -127,6 +141,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 300;
   src: local('Source Sans Pro Light Italic'), local('SourceSansPro-LightIt'),
@@ -136,6 +151,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 400;
   src: local('Source Sans Pro Italic'), local('SourceSansPro-It'),
@@ -145,6 +161,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 400;
   src: local('Source Sans Pro Italic'), local('SourceSansPro-It'),
@@ -154,6 +171,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 400;
   src: local('Source Sans Pro Italic'), local('SourceSansPro-It'),
@@ -163,6 +181,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 600;
   src: local('Source Sans Pro Semibold Italic'), local('SourceSansPro-SemiboldIt'),
@@ -172,6 +191,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 600;
   src: local('Source Sans Pro Semibold Italic'), local('SourceSansPro-SemiboldIt'),
@@ -181,6 +201,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 600;
   src: local('Source Sans Pro Semibold Italic'), local('SourceSansPro-SemiboldIt'),
@@ -190,6 +211,7 @@
 /* vietnamese */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 700;
   src: local('Source Sans Pro Bold Italic'), local('SourceSansPro-BoldIt'),
@@ -199,6 +221,7 @@
 /* latin-ext */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 700;
   src: local('Source Sans Pro Bold Italic'), local('SourceSansPro-BoldIt'),
@@ -208,6 +231,7 @@
 /* latin */
 @font-face {
   font-family: 'Source Sans Pro';
+  font-display: swap;
   font-style: italic;
   font-weight: 700;
   src: local('Source Sans Pro Bold Italic'), local('SourceSansPro-BoldIt'),
