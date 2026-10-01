@@ -40,15 +40,16 @@ const RecordingContainer: React.FC<RecordingContainerProps> = (props) => {
   const allowStartStopRecording = currentMeetingData?.recordingPolicies?.allowStartStopRecording ?? false;
 
   const toggleRecording = React.useCallback(() => {
+    if (!Service.mayIRecord(amIModerator, allowStartStopRecording, recording)) return;
     setRecordingStatus({
       variables: {
         recording: !recording,
       },
     });
     setIsOpen(false);
-  }, [recording, setIsOpen, setRecordingStatus]);
+  }, [amIModerator, allowStartStopRecording, recording, setIsOpen, setRecordingStatus]);
 
-  const mayIRecord = Service.mayIRecord(amIModerator, allowStartStopRecording);
+  const mayIRecord = Service.mayIRecord(amIModerator, allowStartStopRecording, recording);
 
   if (!mayIRecord || recordingDataLoading) return null;
 

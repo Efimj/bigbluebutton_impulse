@@ -5,6 +5,7 @@ import org.bigbluebutton.ClientSettings
 import org.bigbluebutton.common2.domain.DefaultProps
 import org.bigbluebutton.common2.util.YamlUtil
 import org.bigbluebutton.core.apps._
+import org.bigbluebutton.core.apps.users.RecordingControlPolicy
 import org.bigbluebutton.core.bus._
 import org.bigbluebutton.core.models._
 import org.bigbluebutton.core.OutMessageGateway
@@ -39,9 +40,12 @@ class RunningMeeting(val props: DefaultProps, outGW: OutMessageGateway,
   val clientSettings: Map[String, Object] = {
     val merged = ClientSettings.mergePluginSettingsIntoClientSettings(
       clientSettingsBeforePluginValidation, pluginSettings)
+    val withRecordingControl = merged + ("impulseRecordingControl" -> RecordingControlPolicy.clientSettings(
+      props.recordProp.record, props.recordProp.allowStartStopRecording, props.metadataProp.metadata
+    ))
 
     if (props.meetingProp.disabledFeatures.contains("slidePreloading")) {
-      YamlUtil.mergeImmutableMaps(merged, Map[String, Object](
+      YamlUtil.mergeImmutableMaps(withRecordingControl, Map[String, Object](
         "public" -> Map[String, Object](
           "app" -> Map[String, Object](
             "preloadNextSlides" -> Int.box(0)
@@ -49,7 +53,7 @@ class RunningMeeting(val props: DefaultProps, outGW: OutMessageGateway,
         )
       ))
     } else {
-      merged
+      withRecordingControl
     }
   }
 
