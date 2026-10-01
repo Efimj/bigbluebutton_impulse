@@ -28,7 +28,12 @@ trait RecordAndClearPreviousMarkersCmdMsgHdlr {
     }
 
     // Do not allow stop recording and clear previous markers
-    if (liveMeeting.props.recordProp.allowStartStopRecording &&
+    if (msg.body.recording && RecordingControlPolicy.isAllowed(
+      liveMeeting.props.recordProp.record,
+      liveMeeting.props.recordProp.allowStartStopRecording,
+      liveMeeting.props.metadataProp.metadata,
+      recording = true
+    ) &&
       MeetingStatus2x.isRecording(liveMeeting.status) != msg.body.recording) {
 
       MeetingStatus2x.recordingStarted(liveMeeting.status)

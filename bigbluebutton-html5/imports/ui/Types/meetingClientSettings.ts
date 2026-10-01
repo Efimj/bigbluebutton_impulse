@@ -5,6 +5,10 @@ import type {
 } from 'livekit-client';
 
 export interface MeetingClientSettings {
+  impulseRecordingControl?: {
+    allowStart: boolean;
+    allowStop: boolean;
+  };
   public: Public
   private: Private
 }

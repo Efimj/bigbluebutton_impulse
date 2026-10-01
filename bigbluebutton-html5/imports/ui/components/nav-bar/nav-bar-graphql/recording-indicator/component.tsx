@@ -124,7 +124,7 @@ const RecordingIndicator: React.FC<RecordingIndicatorProps> = ({
   const [time, setTime] = useState(serverTime);
   const setIntervalRef = React.useRef<ReturnType<typeof setTimeout>>();
   const disabled = hasError || isLoading;
-  const showButton = Service.mayIRecord(isModerator, allowStartStopRecording);
+  const showButton = Service.mayIRecord(isModerator, allowStartStopRecording, recording);
   const isRTL = layoutSelect((i: Layout) => i.isRTL);
 
   const [isRecordingModalOpen, setIsRecordingModalOpen] = useState(false);
@@ -151,13 +151,14 @@ const RecordingIndicator: React.FC<RecordingIndicatorProps> = ({
   }, [openRecordingNotifyModal, closeRecordingNotifyModal]);
 
   const recordingToggle = useCallback((hasMicUser: boolean, isRecording: boolean) => {
+    if (!showButton || disabled) return;
     if (!hasMicUser && !isRecording) {
       notify(intl.formatMessage(intlMessages.emptyAudioBrdige), 'error', 'warning');
     }
     setIsRecordingModalOpen(true);
     const focusedElement = document.activeElement as HTMLElement;
     focusedElement.blur();
-  }, []);
+  }, [showButton, disabled, intl]);
 
   useEffect(() => {
     if (recording) {
@@ -205,7 +206,7 @@ const RecordingIndicator: React.FC<RecordingIndicatorProps> = ({
     }
 
     return intl.formatMessage(intlMessages.stopTitle);
-  }, [recording, isPhone, disabled, isModerator, time, intl.locale]);
+  }, [recording, isPhone, disabled, showButton, time, intl.locale]);
 
   const tooltipTitle = useMemo(() => {
     if (!recording) {
@@ -217,7 +218,7 @@ const RecordingIndicator: React.FC<RecordingIndicatorProps> = ({
     return showButton
       ? intl.formatMessage(intlMessages.stopTitle)
       : intl.formatMessage(intlMessages.recordingTitle);
-  }, [recording, isModerator, recordTitle]);
+  }, [recording, showButton, recordTitle]);
 
   const recordingIndicatorIcon = useMemo(() => (
     <Styled.RecordingIndicatorIcon

@@ -46,7 +46,12 @@ trait SetRecordingStatusCmdMsgHdlr extends RightsManagementTrait {
       PermissionCheck.ejectUserForFailedPermission(meetingId, msg.header.userId, reason, outGW, liveMeeting)
       state
     } else {
-      if (liveMeeting.props.recordProp.allowStartStopRecording &&
+      if (RecordingControlPolicy.isAllowed(
+        liveMeeting.props.recordProp.record,
+        liveMeeting.props.recordProp.allowStartStopRecording,
+        liveMeeting.props.metadataProp.metadata,
+        msg.body.recording
+      ) &&
         MeetingStatus2x.isRecording(liveMeeting.status) != msg.body.recording) {
         if (msg.body.recording) {
           val notifyEvent = MsgBuilder.buildNotifyAllInMeetingEvtMsg(
