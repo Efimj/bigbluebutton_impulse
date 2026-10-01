@@ -23,6 +23,8 @@ const propTypes = {
   dark: PropTypes.bool,
   bottom: PropTypes.bool,
   isIphone: PropTypes.bool,
+  showOnIphone: PropTypes.bool,
+  presentationMenuStyle: PropTypes.bool,
   isFullscreen: PropTypes.bool,
   elementName: PropTypes.string,
   handleToggleFullScreen: PropTypes.func.isRequired,
@@ -38,6 +40,8 @@ const FullscreenButtonComponent = ({
   elementId,
   elementGroup,
   isIphone = false,
+  showOnIphone = false,
+  presentationMenuStyle = false,
   isFullscreen = false,
   layoutContextDispatch,
   currentElement,
@@ -47,7 +51,7 @@ const FullscreenButtonComponent = ({
   fullscreenRef = null,
   handleToggleFullScreen,
 }) => {
-  if (isIphone) return null;
+  if (isIphone && !showOnIphone) return null;
 
   const formattedLabel = (fullscreen) => (fullscreen
     ? intl.formatMessage(
@@ -61,7 +65,11 @@ const FullscreenButtonComponent = ({
   );
 
   const handleClick = () => {
-    handleToggleFullScreen(fullscreenRef);
+    // iPhone lacks reliable element fullscreen. The layout state below still
+    // expands the content to the available browser viewport.
+    if (!isIphone) {
+      handleToggleFullScreen(fullscreenRef);
+    }
     const newElement = (elementId === currentElement) ? '' : elementId;
     const newGroup = (elementGroup === currentGroup) ? '' : elementGroup;
 
@@ -78,6 +86,7 @@ const FullscreenButtonComponent = ({
     <Styled.FullscreenButtonWrapper
       theme={dark ? 'dark' : 'light'}
       position={bottom ? 'bottom' : 'top'}
+      presentationMenuStyle={presentationMenuStyle}
     >
       <Styled.FullscreenButton
         color={color || 'default'}
@@ -87,6 +96,7 @@ const FullscreenButtonComponent = ({
         label={formattedLabel(isFullscreen)}
         hideLabel
         isStyled={fullScreenStyle}
+        presentationMenuStyle={presentationMenuStyle}
         data-test="webcamFullscreenButton"
       />
     </Styled.FullscreenButtonWrapper>

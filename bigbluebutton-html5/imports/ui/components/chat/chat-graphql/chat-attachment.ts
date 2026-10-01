@@ -100,27 +100,52 @@ export const stripAllAttachmentMarkersFromHtml = (html: string | null | undefine
   .replace(/(?:<br\s*\/?>(?:\s*)){2,}$/gi, '')
   .trim();
 
-export const uploadChatAttachment = async (file: File): Promise<ChatAttachment> => {
+export const uploadChatAttachment = (file: File): Promise<ChatAttachment> => {
   const sessionToken = String(Auth.sessionToken || '');
   const formData = new FormData();
-  formData.append('file', file, file.name);
-  const response = await fetch(
-    `/bigbluebutton/chat-attachment/upload?sessionToken=${encodeURIComponent(sessionToken)}`,
-    {
-      method: 'POST',
-      credentials: 'same-origin',
-      body: formData,
-    },
-  );
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    const error = new Error(body.error || 'upload-failed') as Error & { status?: number };
-    error.status = response.status;
-    throw error;
-  }
-  const attachment = await response.json();
-  if (!isChatAttachment(attachment)) throw new Error('invalid-upload-response');
-  return attachment;
+  // Let WebKit serialize Photos/iCloud-backed files without re-wrapping them.
+  // BBB's presentation uploader uses the same FormData pattern.
+  formData.append('file', file);
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const uploadUrl = `/bigbluebutton/chat-attachment/upload?sessionToken=${encodeURIComponent(sessionToken)}`;
+    xhr.open('POST', uploadUrl);
+    xhr.withCredentials = true;
+
+    const rejectUpload = (message: string, status?: number) => {
+      const error = new Error(message) as Error & { status?: number };
+      error.status = status;
+      reject(error);
+    };
+
+    xhr.onload = () => {
+      let body: unknown = {};
+      try {
+        body = JSON.parse(xhr.responseText || '{}');
+      } catch (error) {
+        rejectUpload('invalid-upload-response', xhr.status);
+        return;
+      }
+
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const serverError = body != null && typeof body === 'object' && 'error' in body
+          ? String((body as { error: unknown }).error)
+          : 'upload-failed';
+        rejectUpload(serverError, xhr.status);
+        return;
+      }
+
+      if (!isChatAttachment(body)) {
+        rejectUpload('invalid-upload-response', xhr.status);
+        return;
+      }
+      resolve(body);
+    };
+    xhr.onerror = () => rejectUpload('network-error', xhr.status || undefined);
+    xhr.onabort = () => rejectUpload('upload-aborted', xhr.status || undefined);
+    xhr.send(formData);
+  });
 };
 
 export const chatAttachmentUrl = (attachment: ChatAttachment, preview = false) => {

@@ -258,7 +258,10 @@ const ChatMessageForm: React.FC<ChatMessageFormProps> = ({
       if (failed?.status === 'rejected') {
         logger.error({
           logCode: 'chat_attachment_upload_error',
-          extraInfo: { errorMessage: (failed.reason as Error)?.message },
+          extraInfo: {
+            errorMessage: (failed.reason as Error)?.message,
+            status: (failed.reason as Error & { status?: number })?.status,
+          },
         }, 'Uploading a chat attachment failed');
         setError(intl.formatMessage(messages.attachmentUploadFailed));
       }

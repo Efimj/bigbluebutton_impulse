@@ -346,6 +346,8 @@ class ScreenshareComponent extends React.Component {
           fullscreenRef={this.screenshareContainer}
           elementId={fullscreenElementId}
           isFullscreen={fullscreenContext}
+          showOnIphone={deviceInfo.isMobile}
+          presentationMenuStyle={deviceInfo.isMobile}
           dark
         />
       </Styled.FullscreenButtonWrapperForScreenshare>
@@ -556,11 +558,12 @@ class ScreenshareComponent extends React.Component {
           positionYAxis="top"
           positionXAxis="right"
         >
+          {deviceInfo.isMobile && this.renderFullscreenButton()}
           {isPresenter
             // Presenter button:
             ? isGloballyBroadcasting && this.renderSwitchButton()
-            // Non-presenter button:
-            : loaded && this.renderFullscreenButton()}
+            // Non-presenter button (mobile renders it above even while loading):
+            : !deviceInfo.isMobile && loaded && this.renderFullscreenButton()}
           {renderPluginItems(topRightPluginItems, false, true)}
         </Styled.ScreenshareButtonsContainterWrapper>
         <Styled.ScreenshareButtonsContainterWrapper

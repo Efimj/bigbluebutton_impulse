@@ -4,6 +4,8 @@ import {
   colorTransparent,
   colorWhite,
   colorBlack,
+  colorGrayLightest,
+  colorOffWhite,
 } from '/imports/ui/stylesheets/styled-components/palette';
 
 const FullscreenButtonWrapper = styled.div`
@@ -48,6 +50,36 @@ const FullscreenButtonWrapper = styled.div`
   ${({ position }) => position === 'top' && `
     top: 0;
   `}
+
+  ${({ presentationMenuStyle }) => presentationMenuStyle && `
+    align-items: center;
+    background-color: ${colorOffWhite};
+    border-radius: 13px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.16),
+      0 2px 3px rgba(0, 0, 0, 0.24),
+      0 2px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    height: 35px;
+    justify-content: center;
+    margin: 0;
+    right: 3px;
+    top: 2px;
+    width: 35px;
+    z-index: 999;
+
+    &:hover {
+      background-color: ${colorGrayLightest};
+    }
+
+    & button i {
+      color: #2d2d2d;
+    }
+
+    [dir="rtl"] & {
+      left: 3px;
+      right: auto;
+    }
+  `}
 `;
 
 const FullscreenButton = styled(Button)`
@@ -73,6 +105,13 @@ const FullscreenButton = styled(Button)`
     i {
       font-size: 1rem;
     }
+  `}
+
+  ${({ presentationMenuStyle }) => presentationMenuStyle && `
+    border-radius: 13px;
+    height: 100%;
+    padding: .3rem .5rem;
+    width: 100%;
   `}
 `;
 
