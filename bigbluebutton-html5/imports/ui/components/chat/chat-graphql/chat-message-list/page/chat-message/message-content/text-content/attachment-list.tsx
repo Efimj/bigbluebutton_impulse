@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { defineMessages, useIntl } from 'react-intl';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import CloseIcon from '@mui/icons-material/Close';
@@ -37,8 +37,10 @@ interface AttachmentItemProps {
 const AttachmentItem: React.FC<AttachmentItemProps> = ({ attachment }) => {
   const intl = useIntl();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [previewUnavailable, setPreviewUnavailable] = useState(false);
   const previewUrl = chatAttachmentUrl(attachment, true);
   const downloadUrl = chatAttachmentUrl(attachment);
+  const canPreview = attachment.previewableImage && !previewUnavailable;
 
   const showPreview = () => {
     if (dialogRef.current?.showModal) {
@@ -50,13 +52,18 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({ attachment }) => {
 
   return (
     <Styled.AttachmentCard data-test="chatAttachment">
-      {attachment.previewableImage ? (
+      {canPreview ? (
         <Styled.ThumbnailButton
           type="button"
           onClick={showPreview}
           aria-label={intl.formatMessage(messages.preview, { name: attachment.name })}
         >
-          <Styled.Thumbnail src={previewUrl} alt="" loading="lazy" />
+          <Styled.Thumbnail
+            src={previewUrl}
+            alt=""
+            loading="lazy"
+            onError={() => setPreviewUnavailable(true)}
+          />
           <Styled.PreviewBadge aria-hidden="true"><OpenInFullIcon fontSize="small" /></Styled.PreviewBadge>
         </Styled.ThumbnailButton>
       ) : (
@@ -76,7 +83,7 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({ attachment }) => {
       >
         <DownloadIcon />
       </Styled.DownloadLink>
-      {attachment.previewableImage ? (
+      {canPreview ? (
         <Styled.PreviewDialog
           ref={dialogRef}
           onClick={(event) => {
@@ -92,7 +99,14 @@ const AttachmentItem: React.FC<AttachmentItemProps> = ({ attachment }) => {
           >
             <CloseIcon />
           </Styled.ClosePreviewButton>
-          <Styled.FullImage src={previewUrl} alt={attachment.name} />
+          <Styled.FullImage
+            src={previewUrl}
+            alt={attachment.name}
+            onError={() => {
+              dialogRef.current?.close();
+              setPreviewUnavailable(true);
+            }}
+          />
           <Styled.PreviewCaption>{attachment.name}</Styled.PreviewCaption>
         </Styled.PreviewDialog>
       ) : null}

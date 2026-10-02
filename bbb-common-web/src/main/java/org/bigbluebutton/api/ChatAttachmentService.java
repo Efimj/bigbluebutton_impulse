@@ -22,6 +22,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Locale;
@@ -201,6 +202,9 @@ public class ChatAttachmentService {
   }
 
   private static ImageType detectSafeImageType(Path file) {
+    ImageType signatureType = detectImageTypeBySignature(file);
+    if (signatureType.previewable) return signatureType;
+
     try (ImageInputStream imageInput = ImageIO.createImageInputStream(file.toFile())) {
       if (imageInput == null) return ImageType.NOT_PREVIEWABLE;
       Iterator<ImageReader> readers = ImageIO.getImageReaders(imageInput);
@@ -211,6 +215,7 @@ public class ChatAttachmentService {
         if ("jpeg".equals(format) || "jpg".equals(format)) return new ImageType("image/jpeg", true);
         if ("png".equals(format)) return new ImageType("image/png", true);
         if ("gif".equals(format)) return new ImageType("image/gif", true);
+        if ("bmp".equals(format)) return new ImageType("image/bmp", true);
       } finally {
         reader.dispose();
       }
@@ -218,6 +223,62 @@ public class ChatAttachmentService {
       log.debug("Uploaded chat attachment is not a supported preview image", e);
     }
     return ImageType.NOT_PREVIEWABLE;
+  }
+
+  private static ImageType detectImageTypeBySignature(Path file) {
+    byte[] header = new byte[128];
+    int bytesRead;
+    try (InputStream input = new BufferedInputStream(Files.newInputStream(file))) {
+      bytesRead = input.read(header);
+    } catch (IOException e) {
+      log.debug("Unable to read uploaded chat attachment signature", e);
+      return ImageType.NOT_PREVIEWABLE;
+    }
+
+    if (bytesRead >= 12
+        && asciiEquals(header, 0, "RIFF")
+        && asciiEquals(header, 8, "WEBP")) {
+      return new ImageType("image/webp", true);
+    }
+    if (bytesRead >= 2 && header[0] == 'B' && header[1] == 'M') {
+      return new ImageType("image/bmp", true);
+    }
+    if (bytesRead >= 16 && asciiEquals(header, 4, "ftyp")) {
+      int boxSize = ((header[0] & 0xff) << 24)
+        | ((header[1] & 0xff) << 16)
+        | ((header[2] & 0xff) << 8)
+        | (header[3] & 0xff);
+      int brandLimit = Math.min(bytesRead, boxSize > 0 ? boxSize : bytesRead);
+      if (containsBrand(header, brandLimit, "avif") || containsBrand(header, brandLimit, "avis")) {
+        return new ImageType("image/avif", true);
+      }
+      if (containsBrand(header, brandLimit, "heic") || containsBrand(header, brandLimit, "heix")
+          || containsBrand(header, brandLimit, "hevc") || containsBrand(header, brandLimit, "hevx")) {
+        return new ImageType("image/heic", true);
+      }
+      if (containsBrand(header, brandLimit, "heim") || containsBrand(header, brandLimit, "heis")
+          || containsBrand(header, brandLimit, "hevm") || containsBrand(header, brandLimit, "hevs")
+          || containsBrand(header, brandLimit, "mif1") || containsBrand(header, brandLimit, "msf1")) {
+        return new ImageType("image/heif", true);
+      }
+    }
+    return ImageType.NOT_PREVIEWABLE;
+  }
+
+  private static boolean asciiEquals(byte[] bytes, int offset, String expected) {
+    if (offset < 0 || offset + expected.length() > bytes.length) return false;
+    byte[] expectedBytes = expected.getBytes(StandardCharsets.US_ASCII);
+    for (int index = 0; index < expectedBytes.length; index++) {
+      if (bytes[offset + index] != expectedBytes[index]) return false;
+    }
+    return true;
+  }
+
+  private static boolean containsBrand(byte[] header, int limit, String brand) {
+    for (int offset = 8; offset + 4 <= limit; offset += 4) {
+      if (asciiEquals(header, offset, brand)) return true;
+    }
+    return false;
   }
 
   private static void moveAtomically(Path source, Path destination) throws IOException {

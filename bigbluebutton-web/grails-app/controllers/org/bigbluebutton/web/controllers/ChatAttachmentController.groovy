@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.util.Base64
 
 class ChatAttachmentController {
   static allowedMethods = [upload: 'POST', download: 'GET']
@@ -48,12 +49,39 @@ class ChatAttachmentController {
       return
     }
 
-    MultipartFile file = request.getFile('file')
-    if (file == null || file.empty) {
-      renderJson(400, [error: 'file-empty'])
-      return
+    String originalFilename
+    InputStream fileInputStream
+    long declaredSize
+    if (params.raw == 'true') {
+      String encodedFilename = request.getHeader('X-BBB-File-Name')
+      String encodedSize = request.getHeader('X-BBB-File-Size')
+      if (!encodedFilename || !encodedSize) {
+        renderJson(400, [error: 'invalid-file'])
+        return
+      }
+      try {
+        originalFilename = new String(Base64.urlDecoder.decode(encodedFilename), StandardCharsets.UTF_8)
+        declaredSize = Long.parseLong(encodedSize)
+      } catch (IllegalArgumentException ignored) {
+        renderJson(400, [error: 'invalid-file'])
+        return
+      }
+      if (declaredSize <= 0) {
+        renderJson(400, [error: 'file-empty'])
+        return
+      }
+      fileInputStream = request.inputStream
+    } else {
+      MultipartFile file = request.getFile('file')
+      if (file == null || file.empty) {
+        renderJson(400, [error: 'file-empty'])
+        return
+      }
+      originalFilename = file.originalFilename
+      declaredSize = file.size
+      fileInputStream = file.inputStream
     }
-    if (file.size > chatAttachmentService.maxFileSize) {
+    if (declaredSize > chatAttachmentService.maxFileSize) {
       renderJson(413, [error: 'file-too-large', maxFileSize: chatAttachmentService.maxFileSize])
       return
     }
@@ -62,9 +90,9 @@ class ChatAttachmentController {
       ChatAttachmentService.AttachmentInfo attachment = chatAttachmentService.save(
         userSession.meetingID,
         userSession.internalUserId,
-        file.originalFilename,
-        file.inputStream,
-        file.size,
+        originalFilename,
+        fileInputStream,
+        declaredSize,
       )
       renderJson(201, [
         id: attachment.id,

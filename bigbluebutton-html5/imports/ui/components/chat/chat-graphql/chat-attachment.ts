@@ -100,18 +100,37 @@ export const stripAllAttachmentMarkersFromHtml = (html: string | null | undefine
   .replace(/(?:<br\s*\/?>(?:\s*)){2,}$/gi, '')
   .trim();
 
+const isIOSDevice = () => /iPad|iPhone|iPod/.test(window.navigator.userAgent)
+  || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+
 export const uploadChatAttachment = (file: File): Promise<ChatAttachment> => {
   const sessionToken = String(Auth.sessionToken || '');
-  const formData = new FormData();
-  // Let WebKit serialize Photos/iCloud-backed files without re-wrapping them.
-  // BBB's presentation uploader uses the same FormData pattern.
-  formData.append('file', file);
+  const useRawUpload = isIOSDevice();
+  const query = new URLSearchParams({ sessionToken });
+  let requestBody: FormData | File;
+
+  if (useRawUpload) {
+    // Some iOS WebKit releases can serialize a Photos/iCloud-backed File as an
+    // empty multipart request. Sending the same File as the request body avoids
+    // that WebKit path; the server still validates the streamed byte count.
+    query.set('raw', 'true');
+    requestBody = file;
+  } else {
+    const formData = new FormData();
+    formData.append('file', file);
+    requestBody = formData;
+  }
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    const uploadUrl = `/bigbluebutton/chat-attachment/upload?sessionToken=${encodeURIComponent(sessionToken)}`;
+    const uploadUrl = `/bigbluebutton/chat-attachment/upload?${query}`;
     xhr.open('POST', uploadUrl);
     xhr.withCredentials = true;
+    if (useRawUpload) {
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.setRequestHeader('X-BBB-File-Name', encodeBase64Url(file.name || 'file'));
+      xhr.setRequestHeader('X-BBB-File-Size', String(file.size));
+    }
 
     const rejectUpload = (message: string, status?: number) => {
       const error = new Error(message) as Error & { status?: number };
@@ -144,7 +163,7 @@ export const uploadChatAttachment = (file: File): Promise<ChatAttachment> => {
     };
     xhr.onerror = () => rejectUpload('network-error', xhr.status || undefined);
     xhr.onabort = () => rejectUpload('upload-aborted', xhr.status || undefined);
-    xhr.send(formData);
+    xhr.send(requestBody);
   });
 };
 
