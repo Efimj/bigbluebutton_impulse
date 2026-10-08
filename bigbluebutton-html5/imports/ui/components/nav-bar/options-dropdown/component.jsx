@@ -2,14 +2,12 @@ import React, { PureComponent } from 'react';
 import { defineMessages, injectIntl } from 'react-intl';
 import PropTypes from 'prop-types';
 import EndMeetingConfirmationContainer from '/imports/ui/components/end-meeting-confirmation/container';
-import MobileAppModal from '/imports/ui/components/mobile-app-modal/mobile-app-modal-graphql/component';
 import BBBMenu from '/imports/ui/components/common/menu/component';
 import FullscreenService from '/imports/ui/components/common/fullscreen-button/service';
 import { colorDanger, colorWhite } from '/imports/ui/stylesheets/styled-components/palette';
 import { OptionsDropdownItemType } from 'bigbluebutton-html-plugin-sdk/dist/cjs/extensible-areas/options-dropdown-item/enums';
 import Styled from './styles';
 import browserInfo from '/imports/utils/browserInfo';
-import deviceInfo from '/imports/utils/deviceInfo';
 import Session from '/imports/ui/services/storage/in-memory';
 import { ModalRegistration } from '/imports/ui/core/singletons/modalController';
 
@@ -66,10 +64,6 @@ const intlMessages = defineMessages({
     id: 'app.navBar.optionsDropdown.hotkeysDesc',
     description: 'Describes hotkeys option',
   },
-  openAppLabel: {
-    id: 'app.navBar.optionsDropdown.openAppLabel',
-    description: 'Open mobile app label',
-  },
   endMeetingLabel: {
     id: 'app.navBar.optionsDropdown.endMeetingForAllLabel',
     description: 'End meeting options label',
@@ -120,7 +114,7 @@ const defaultProps = {
   audioCaptionsEnabled: false,
 };
 
-const { isSafari, isTabletApp } = browserInfo;
+const { isSafari } = browserInfo;
 const FULLSCREEN_CHANGE_EVENT = isSafari ? 'webkitfullscreenchange' : 'fullscreenchange';
 
 class OptionsDropdown extends PureComponent {
@@ -200,8 +194,6 @@ class OptionsDropdown extends PureComponent {
       isDirectLeaveButtonEnabled,
     } = this.props;
 
-    const { isIos } = deviceInfo;
-
     const allowedToEndMeeting = amIModerator && !isBreakoutRoom;
 
     const {
@@ -211,22 +203,6 @@ class OptionsDropdown extends PureComponent {
     this.menuItems = [];
 
     this.getFullscreenItem(this.menuItems);
-
-    const BBB_TABLET_APP_CONFIG = window.meetingClientSettings.public.app.bbbTabletApp;
-
-    if (isIos
-      && !isTabletApp
-      && BBB_TABLET_APP_CONFIG.enabled === true
-      && BBB_TABLET_APP_CONFIG.iosAppStoreUrl !== '') {
-      this.menuItems.push(
-        {
-          key: 'list-item-help',
-          icon: 'popout_window',
-          label: intl.formatMessage(intlMessages.openAppLabel),
-          onClick: () => this.setMobileAppModalIsOpen(true),
-        },
-      );
-    }
 
     if (audioCaptionsEnabled && isMobile) {
       this.menuItems.push({
@@ -346,21 +322,6 @@ class OptionsDropdown extends PureComponent {
             this.setEndMeetingConfirmationModalIsOpen = isOpen ? close : open;
             return isOpen && (
               <EndMeetingConfirmationContainer onRequestClose={close} priority="low" isOpen={isOpen} id={id} setIsOpen={isOpen ? close : open} />
-            );
-          }}
-        </ModalRegistration>
-
-        {/* Mobile App Modal */}
-        <ModalRegistration id="mobileAppModal" priority="low">
-          {({
-            isOpen,
-            id,
-            open,
-            close,
-          }) => {
-            this.setMobileAppModalIsOpen = isOpen ? close : open;
-            return isOpen && (
-              <MobileAppModal onRequestClose={close} priority="low" isOpen={isOpen} id={id} setIsOpen={isOpen ? close : open} />
             );
           }}
         </ModalRegistration>

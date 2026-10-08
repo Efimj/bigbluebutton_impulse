@@ -35,6 +35,27 @@ import { colorBackground } from '/imports/ui/stylesheets/styled-components/palet
 const MOBILE_HOVER_TIMEOUT = 5000;
 const MOBILE_HOVER_INTERVAL = 2000;
 const SCREEN_SIZE_DISPATCH_INTERVAL = 500;
+const MIN_SCREENSHARE_ZOOM = 1;
+const MAX_SCREENSHARE_ZOOM = 4;
+const WHEEL_ZOOM_SENSITIVITY = 0.002;
+
+const getScreensharePoint = (container, clientX, clientY) => {
+  const rect = container.getBoundingClientRect();
+
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top,
+    width: rect.width,
+    height: rect.height,
+  };
+};
+
+const isScreenshareZoomEnabled = (isPresenter, switched) => !isPresenter || switched;
+
+const constrainScreenshareOffsets = (zoom, offsetX, offsetY, width, height) => ({
+  offsetX: Math.min(0, Math.max(width * (1 - zoom), offsetX)),
+  offsetY: Math.min(0, Math.max(height * (1 - zoom), offsetY)),
+});
 
 const renderPluginItems = (pluginItems, bottom, right) => {
   if (pluginItems !== undefined) {
@@ -82,6 +103,10 @@ class ScreenshareComponent extends React.Component {
       showHoverToolBar: false,
       screenshareRef: null,
       videoTagRef: null,
+      screenshareZoom: MIN_SCREENSHARE_ZOOM,
+      screenshareOffsetX: 0,
+      screenshareOffsetY: 0,
+      screensharePanning: false,
     };
 
     this.onLoadedData = this.onLoadedData.bind(this);
@@ -97,6 +122,13 @@ class ScreenshareComponent extends React.Component {
     this.dispatchScreenShareSize = this.dispatchScreenShareSize.bind(this);
     this.renderScreenshareButtons = this.renderScreenshareButtons.bind(this);
     this.splitPluginItems = this.splitPluginItems.bind(this);
+    this.handleScreenshareWheel = this.handleScreenshareWheel.bind(this);
+    this.handleScreenshareMouseDown = this.handleScreenshareMouseDown.bind(this);
+    this.handleScreenshareMouseMove = this.handleScreenshareMouseMove.bind(this);
+    this.handleScreensharePanEnd = this.handleScreensharePanEnd.bind(this);
+    this.handleScreenshareTouchStart = this.handleScreenshareTouchStart.bind(this);
+    this.handleScreenshareTouchMove = this.handleScreenshareTouchMove.bind(this);
+    this.handleScreenshareTouchEnd = this.handleScreenshareTouchEnd.bind(this);
     this.handleMouseMovement = throttle(this.handleMouseMovement.bind(this), MOBILE_HOVER_INTERVAL);
     this.debouncedDispatchScreenShareSize = debounce(
       this.dispatchScreenShareSize,
@@ -110,6 +142,8 @@ class ScreenshareComponent extends React.Component {
 
     this.volume = getVolume();
     this.mobileHoverSetTimeout = null;
+    this.pinchGesture = null;
+    this.panGesture = null;
   }
 
   componentDidMount() {
@@ -128,6 +162,14 @@ class ScreenshareComponent extends React.Component {
     screenshareHasStarted(streamId, hasAudio, isPresenter, { outputDeviceId });
     // Autoplay failure handling
     window.addEventListener('screensharePlayFailed', this.handlePlayElementFailed);
+    this.screenshareContainer.addEventListener('wheel', this.handleScreenshareWheel, { passive: false });
+    this.screenshareContainer.addEventListener('mousedown', this.handleScreenshareMouseDown);
+    this.screenshareContainer.addEventListener('touchstart', this.handleScreenshareTouchStart, { passive: false });
+    this.screenshareContainer.addEventListener('touchmove', this.handleScreenshareTouchMove, { passive: false });
+    this.screenshareContainer.addEventListener('touchend', this.handleScreenshareTouchEnd);
+    this.screenshareContainer.addEventListener('touchcancel', this.handleScreenshareTouchEnd);
+    window.addEventListener('mousemove', this.handleScreenshareMouseMove);
+    window.addEventListener('mouseup', this.handleScreensharePanEnd);
     // Attaches the local stream if it exists to serve as the local presenter preview
     attachLocalPreviewStream(getMediaElement());
 
@@ -150,7 +192,12 @@ class ScreenshareComponent extends React.Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    const { isPresenter, outputDeviceId, shouldShowScreenshare } = this.props;
+    const {
+      isPresenter,
+      outputDeviceId,
+      shouldShowScreenshare,
+      fullscreenContext,
+    } = this.props;
     const { videoTagRef } = this.state;
     if (prevProps.isPresenter && !isPresenter) {
       screenshareHasEnded();
@@ -173,6 +220,10 @@ class ScreenshareComponent extends React.Component {
     if ((prevState.videoTagRef !== videoTagRef) && videoTagRef) {
       videoTagRef.addEventListener('mousemove', this.handleMouseMovement);
     }
+
+    if (prevProps.fullscreenContext !== fullscreenContext) {
+      this.handleScreenshareZoomReset();
+    }
   }
 
   componentWillUnmount() {
@@ -186,6 +237,16 @@ class ScreenshareComponent extends React.Component {
     } = this.state;
     screenshareHasEnded();
     window.removeEventListener('screensharePlayFailed', this.handlePlayElementFailed);
+    if (this.screenshareContainer) {
+      this.screenshareContainer.removeEventListener('wheel', this.handleScreenshareWheel);
+      this.screenshareContainer.removeEventListener('mousedown', this.handleScreenshareMouseDown);
+      this.screenshareContainer.removeEventListener('touchstart', this.handleScreenshareTouchStart);
+      this.screenshareContainer.removeEventListener('touchmove', this.handleScreenshareTouchMove);
+      this.screenshareContainer.removeEventListener('touchend', this.handleScreenshareTouchEnd);
+      this.screenshareContainer.removeEventListener('touchcancel', this.handleScreenshareTouchEnd);
+    }
+    window.removeEventListener('mousemove', this.handleScreenshareMouseMove);
+    window.removeEventListener('mouseup', this.handleScreensharePanEnd);
 
     const Settings = getSettingsSingletonInstance();
     if (Settings.dataSaving.viewScreenshare) {
@@ -224,6 +285,249 @@ class ScreenshareComponent extends React.Component {
       () => this.setState({ showHoverToolBar: false }),
       MOBILE_HOVER_TIMEOUT,
     );
+  }
+
+  handleScreenshareZoomUpdate(getNextZoom, currentPoint, initialPoint, initialTransform) {
+    this.setState((prevState) => {
+      const transform = initialTransform || {
+        zoom: prevState.screenshareZoom,
+        offsetX: prevState.screenshareOffsetX,
+        offsetY: prevState.screenshareOffsetY,
+      };
+      const anchor = initialPoint || currentPoint;
+      const nextZoom = Math.min(
+        MAX_SCREENSHARE_ZOOM,
+        Math.max(MIN_SCREENSHARE_ZOOM, getNextZoom(transform.zoom)),
+      );
+
+      if (nextZoom === MIN_SCREENSHARE_ZOOM) {
+        return {
+          screenshareZoom: MIN_SCREENSHARE_ZOOM,
+          screenshareOffsetX: 0,
+          screenshareOffsetY: 0,
+          screensharePanning: false,
+        };
+      }
+
+      const contentX = (anchor.x - transform.offsetX) / transform.zoom;
+      const contentY = (anchor.y - transform.offsetY) / transform.zoom;
+      const offsetX = currentPoint.x - (contentX * nextZoom);
+      const offsetY = currentPoint.y - (contentY * nextZoom);
+      const constrainedOffsets = constrainScreenshareOffsets(
+        nextZoom,
+        offsetX,
+        offsetY,
+        currentPoint.width,
+        currentPoint.height,
+      );
+
+      return {
+        screenshareZoom: nextZoom,
+        screenshareOffsetX: constrainedOffsets.offsetX,
+        screenshareOffsetY: constrainedOffsets.offsetY,
+      };
+    });
+  }
+
+  handleScreenshareZoomReset() {
+    this.pinchGesture = null;
+    this.panGesture = null;
+    this.setState({
+      screenshareZoom: MIN_SCREENSHARE_ZOOM,
+      screenshareOffsetX: 0,
+      screenshareOffsetY: 0,
+      screensharePanning: false,
+    });
+  }
+
+  handleScreensharePanStart(clientX, clientY) {
+    const {
+      screenshareZoom,
+      screenshareOffsetX,
+      screenshareOffsetY,
+    } = this.state;
+
+    if (screenshareZoom <= MIN_SCREENSHARE_ZOOM) return;
+
+    this.panGesture = {
+      clientX,
+      clientY,
+      offsetX: screenshareOffsetX,
+      offsetY: screenshareOffsetY,
+    };
+    this.setState({ screensharePanning: true });
+  }
+
+  handleScreensharePanMove(clientX, clientY) {
+    if (!this.panGesture) return;
+
+    const { screenshareZoom } = this.state;
+    if (screenshareZoom <= MIN_SCREENSHARE_ZOOM) {
+      this.handleScreensharePanEnd();
+      return;
+    }
+
+    const rect = this.screenshareContainer.getBoundingClientRect();
+    const constrainedOffsets = constrainScreenshareOffsets(
+      screenshareZoom,
+      this.panGesture.offsetX + clientX - this.panGesture.clientX,
+      this.panGesture.offsetY + clientY - this.panGesture.clientY,
+      rect.width,
+      rect.height,
+    );
+
+    this.setState({
+      screenshareOffsetX: constrainedOffsets.offsetX,
+      screenshareOffsetY: constrainedOffsets.offsetY,
+    });
+  }
+
+  handleScreensharePanEnd() {
+    if (!this.panGesture) return;
+
+    this.panGesture = null;
+    this.setState({ screensharePanning: false });
+  }
+
+  handleScreenshareMouseDown(event) {
+    const { screenshareZoom } = this.state;
+    const interactiveTarget = event.target.closest?.(
+      'button, input, a, [role="button"], [role="slider"]',
+    );
+
+    if (event.button !== 0
+      || screenshareZoom <= MIN_SCREENSHARE_ZOOM
+      || interactiveTarget) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.handleScreensharePanStart(event.clientX, event.clientY);
+  }
+
+  handleScreenshareMouseMove(event) {
+    if (!this.panGesture) return;
+
+    event.preventDefault();
+    this.handleScreensharePanMove(event.clientX, event.clientY);
+  }
+
+  handleScreenshareWheel(event) {
+    const { isPresenter } = this.props;
+    const { switched } = this.state;
+
+    if (!event.ctrlKey || !isScreenshareZoomEnabled(isPresenter, switched)) return;
+
+    event.preventDefault();
+    const point = getScreensharePoint(
+      this.screenshareContainer,
+      event.clientX,
+      event.clientY,
+    );
+    let normalizedDelta = event.deltaY;
+    if (event.deltaMode === 1) normalizedDelta *= 16;
+    if (event.deltaMode === 2) normalizedDelta *= window.innerHeight;
+    const zoomFactor = Math.exp(-normalizedDelta * WHEEL_ZOOM_SENSITIVITY);
+
+    this.handleScreenshareZoomUpdate((zoom) => zoom * zoomFactor, point);
+  }
+
+  handleScreenshareTouchStart(event) {
+    const { isPresenter } = this.props;
+    const {
+      switched,
+      screenshareZoom,
+      screenshareOffsetX,
+      screenshareOffsetY,
+    } = this.state;
+
+    if (!isScreenshareZoomEnabled(isPresenter, switched)) {
+      this.pinchGesture = null;
+      this.handleScreensharePanEnd();
+      return;
+    }
+
+    if (event.touches.length === 1 && screenshareZoom > MIN_SCREENSHARE_ZOOM) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.pinchGesture = null;
+      const touch = event.touches[0];
+      this.handleScreensharePanStart(touch.clientX, touch.clientY);
+      return;
+    }
+
+    if (event.touches.length !== 2) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    this.handleScreensharePanEnd();
+    const firstTouch = event.touches[0];
+    const secondTouch = event.touches[1];
+    const center = getScreensharePoint(
+      this.screenshareContainer,
+      (firstTouch.clientX + secondTouch.clientX) / 2,
+      (firstTouch.clientY + secondTouch.clientY) / 2,
+    );
+
+    const distance = Math.hypot(
+      secondTouch.clientX - firstTouch.clientX,
+      secondTouch.clientY - firstTouch.clientY,
+    );
+    if (distance === 0) return;
+
+    this.pinchGesture = {
+      distance,
+      center,
+      transform: {
+        zoom: screenshareZoom,
+        offsetX: screenshareOffsetX,
+        offsetY: screenshareOffsetY,
+      },
+    };
+  }
+
+  handleScreenshareTouchMove(event) {
+    if (this.panGesture && event.touches.length === 1) {
+      event.preventDefault();
+      event.stopPropagation();
+      const touch = event.touches[0];
+      this.handleScreensharePanMove(touch.clientX, touch.clientY);
+      return;
+    }
+
+    if (!this.pinchGesture || event.touches.length !== 2) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const firstTouch = event.touches[0];
+    const secondTouch = event.touches[1];
+    const distance = Math.hypot(
+      secondTouch.clientX - firstTouch.clientX,
+      secondTouch.clientY - firstTouch.clientY,
+    );
+    const center = getScreensharePoint(
+      this.screenshareContainer,
+      (firstTouch.clientX + secondTouch.clientX) / 2,
+      (firstTouch.clientY + secondTouch.clientY) / 2,
+    );
+    const zoomRatio = distance / this.pinchGesture.distance;
+
+    this.handleScreenshareZoomUpdate(
+      () => this.pinchGesture.transform.zoom * zoomRatio,
+      center,
+      this.pinchGesture.center,
+      this.pinchGesture.transform,
+    );
+  }
+
+  handleScreenshareTouchEnd(event) {
+    this.pinchGesture = null;
+    this.handleScreensharePanEnd();
+
+    const { screenshareZoom } = this.state;
+    if (event.touches.length === 1 && screenshareZoom > MIN_SCREENSHARE_ZOOM) {
+      const touch = event.touches[0];
+      this.handleScreensharePanStart(touch.clientX, touch.clientY);
+    }
   }
 
   handleAllowAutoplay() {
@@ -267,23 +571,17 @@ class ScreenshareComponent extends React.Component {
     }
   }
 
-  dispatchScreenShareSize() {
-    const {
-      layoutContextDispatch,
-    } = this.props;
+  handleOnVolumeChanged(volume) {
+    this.volume = volume;
+    setVolume(volume);
+  }
 
-    const { width, height } = getMediaElementDimensions();
-    const value = {
-      width,
-      height,
-      browserWidth: window.innerWidth,
-      browserHeight: window.innerHeight,
-    };
-
-    layoutContextDispatch({
-      type: ACTIONS.SET_SCREEN_SHARE_SIZE,
-      value,
-    });
+  handleOnMuted(muted) {
+    if (muted) {
+      setVolume(0);
+    } else {
+      setVolume(this.volume);
+    }
   }
 
   onLoadedMetadata() {
@@ -304,26 +602,73 @@ class ScreenshareComponent extends React.Component {
   }
 
   onSwitched() {
-    this.setState((prevState) => ({ switched: !prevState.switched }));
-  }
+    this.pinchGesture = null;
+    this.panGesture = null;
+    this.setState((prevState) => {
+      const switched = !prevState.switched;
 
-  handleOnVolumeChanged(volume) {
-    this.volume = volume;
-    setVolume(volume);
-  }
-
-  handleOnMuted(muted) {
-    if (muted) {
-      setVolume(0);
-    } else {
-      setVolume(this.volume);
-    }
+      return switched ? { switched } : {
+        switched,
+        screenshareZoom: MIN_SCREENSHARE_ZOOM,
+        screenshareOffsetX: 0,
+        screenshareOffsetY: 0,
+        screensharePanning: false,
+      };
+    });
   }
 
   onVideoResize() {
     // Debounced version of the dispatcher to pace things out - we don't want
     // to hog the CPU just for resize recalculations...
     this.debouncedDispatchScreenShareSize();
+  }
+
+  dispatchScreenShareSize() {
+    const {
+      layoutContextDispatch,
+    } = this.props;
+
+    const { width, height } = getMediaElementDimensions();
+    const value = {
+      width,
+      height,
+      browserWidth: window.innerWidth,
+      browserHeight: window.innerHeight,
+    };
+
+    layoutContextDispatch({
+      type: ACTIONS.SET_SCREEN_SHARE_SIZE,
+      value,
+    });
+  }
+
+  splitPluginItems() {
+    const { pluginScreenshareHelperItems } = this.props;
+
+    return pluginScreenshareHelperItems.reduce((result, item) => {
+      switch (item.position) {
+        case PluginSdk.ScreenshareHelperItemPosition.TOP_RIGHT:
+          result.topRightPluginItems.push(item);
+          break;
+        case PluginSdk.ScreenshareHelperItemPosition.TOP_LEFT:
+          result.topLeftPluginItems.push(item);
+          break;
+        case PluginSdk.ScreenshareHelperItemPosition.BOTTOM_RIGHT:
+          result.bottomRightPluginItems.push(item);
+          break;
+        case PluginSdk.ScreenshareHelperItemPosition.BOTTOM_LEFT:
+          result.bottomLeftPluginItems.push(item);
+          break;
+        default:
+          break;
+      }
+      return result;
+    }, {
+      topRightPluginItems: [],
+      topLeftPluginItems: [],
+      bottomRightPluginItems: [],
+      bottomLeftPluginItems: [],
+    });
   }
 
   renderFullscreenButton() {
@@ -382,7 +727,7 @@ class ScreenshareComponent extends React.Component {
     );
   }
 
-  renderMobileVolumeControlOverlay () {
+  renderMobileVolumeControlOverlay() {
     return (
       <Styled.MobileControlsOverlay
         key="mobile-overlay-screenshare"
@@ -434,16 +779,27 @@ class ScreenshareComponent extends React.Component {
 
   renderVideo(switched) {
     const { isGloballyBroadcasting } = this.props;
-    const { videoTagRef } = this.state;
+    const {
+      videoTagRef,
+      screenshareZoom,
+      screenshareOffsetX,
+      screenshareOffsetY,
+    } = this.state;
+    const sizeStyle = switched
+      ? { maxHeight: '100%', width: '100%', height: '100%' }
+      : { maxHeight: '25%', width: '25%', height: '25%' };
+    const zoomStyle = switched ? {
+      transform: `translate3d(${screenshareOffsetX}px, ${screenshareOffsetY}px, 0) scale(${screenshareZoom})`,
+      transformOrigin: '0 0',
+      willChange: screenshareZoom > MIN_SCREENSHARE_ZOOM ? 'transform' : 'auto',
+    } : {};
 
     return (
       <Styled.ScreenshareVideo
         id={SCREENSHARE_MEDIA_ELEMENT_NAME}
         key={SCREENSHARE_MEDIA_ELEMENT_NAME}
         unhealthyStream={!isGloballyBroadcasting}
-        style={switched
-          ? { maxHeight: '100%', width: '100%', height: '100%' }
-          : { maxHeight: '25%', width: '25%', height: '25%' }}
+        style={{ ...sizeStyle, ...zoomStyle }}
         playsInline
         onLoadedData={this.onLoadedData}
         onLoadedMetadata={this.onLoadedMetadata}
@@ -458,35 +814,6 @@ class ScreenshareComponent extends React.Component {
         muted
       />
     );
-  }
-
-  splitPluginItems() {
-    const { pluginScreenshareHelperItems } = this.props;
-
-    return pluginScreenshareHelperItems.reduce((result, item) => {
-      switch (item.position) {
-        case PluginSdk.ScreenshareHelperItemPosition.TOP_RIGHT:
-          result.topRightPluginItems.push(item);
-          break;
-        case PluginSdk.ScreenshareHelperItemPosition.TOP_LEFT:
-          result.topLeftPluginItems.push(item);
-          break;
-        case PluginSdk.ScreenshareHelperItemPosition.BOTTOM_RIGHT:
-          result.bottomRightPluginItems.push(item);
-          break;
-        case PluginSdk.ScreenshareHelperItemPosition.BOTTOM_LEFT:
-          result.bottomLeftPluginItems.push(item);
-          break;
-        default:
-          break;
-      }
-      return result;
-    }, {
-      topRightPluginItems: [],
-      topLeftPluginItems: [],
-      bottomRightPluginItems: [],
-      bottomLeftPluginItems: [],
-    });
   }
 
   renderScreensharePresenter() {
@@ -588,6 +915,8 @@ class ScreenshareComponent extends React.Component {
       autoplayBlocked,
       switched,
       screenshareRef,
+      screenshareZoom,
+      screensharePanning,
     } = this.state;
     const {
       isPresenter,
@@ -611,6 +940,10 @@ class ScreenshareComponent extends React.Component {
     const display = (width > 0 && height > 0) && shouldShowScreenshare ? 'inherit' : 'none';
     const Settings = getSettingsSingletonInstance();
     const { animations } = Settings.application;
+    let screenshareCursor = 'default';
+    if (screenshareZoom > MIN_SCREENSHARE_ZOOM) {
+      screenshareCursor = screensharePanning ? 'grabbing' : 'grab';
+    }
 
     return (
       <div
@@ -644,6 +977,10 @@ class ScreenshareComponent extends React.Component {
         {autoplayBlocked ? this.renderAutoplayOverlay() : null}
         <Styled.ScreenshareContainer
           switched={isPresenter ? switched : true}
+          style={{
+            cursor: screenshareCursor,
+            touchAction: screenshareZoom > MIN_SCREENSHARE_ZOOM ? 'none' : 'pan-x pan-y',
+          }}
           key="screenshareContainer"
           ref={(ref) => {
             this.screenshareContainer = ref;

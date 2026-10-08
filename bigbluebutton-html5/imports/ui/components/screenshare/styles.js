@@ -21,6 +21,9 @@ const MainText = styled.h1`
 `;
 
 const ScreenshareVideo = styled.video`
+  user-select: none;
+  -webkit-user-drag: none;
+
   ${({ unhealthyStream }) => unhealthyStream && `
     filter: grayscale(50%) opacity(50%);
   `}
@@ -32,6 +35,8 @@ const ScreenshareContainer = styled.div`
   width: 100%;
   height: 100%;
   border-radius: ${lgBorderRadius};
+  overflow: hidden;
+  touch-action: pan-x pan-y;
 
   ${({ switched }) => !switched && `
     display: flex;
