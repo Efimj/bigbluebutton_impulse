@@ -404,7 +404,7 @@ class App extends React.Component {
     // This line will eliminate duplicates.
     const pluginUserDataColumnTitleList = [...new Set(pluginUserDataColumnTitleWithDuplicates)];
 
-    document.title = `${intl.formatMessage({ id: 'app.learningDashboard.bigbluebuttonTitle', defaultMessage: 'BigBlueButton' })} - ${intl.formatMessage({ id: 'app.learningDashboard.dashboardTitle', defaultMessage: 'Learning Analytics Dashboard' })} - ${activitiesJson.name}`;
+    document.title = `${intl.formatMessage({ id: 'app.learningDashboard.bigbluebuttonTitle', defaultMessage: 'ВКС' })} - ${intl.formatMessage({ id: 'app.learningDashboard.dashboardTitle', defaultMessage: 'Learning Analytics Dashboard' })} - ${activitiesJson.name}`;
 
     if (loading === false && this.getErrorMessage() !== '') return <ErrorMessage message={this.getErrorMessage()} />;
 
