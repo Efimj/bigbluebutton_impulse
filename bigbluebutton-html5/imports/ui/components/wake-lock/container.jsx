@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import WakeLock from './component';
 import Service from './service';
 import getFromUserSettings from '/imports/ui/services/users-settings';
-import useUserChangedLocalSettings from '../../services/settings/hooks/useUserChangedLocalSettings';
 import useSettings from '../../services/settings/hooks/useSettings';
 import { SETTINGS } from '../../services/settings/enums';
 import { useStorageKey } from '../../services/storage/hooks';
@@ -30,7 +29,6 @@ const WakeLockContainer = (props) => {
   const areAudioModalsOpen = audioModalIsOpen || inEchoTest;
   const wereAudioModalsOpen = usePrevious(areAudioModalsOpen);
   const [endedAudioSetup, setEndedAudioSetup] = useState(false || !autoJoin);
-  const setLocalSettings = useUserChangedLocalSettings();
   const { wakeLock: wakeLockSettings } = useSettings(SETTINGS.APPLICATION);
 
   useEffect(() => {
@@ -39,9 +37,8 @@ const WakeLockContainer = (props) => {
     }
   }, [areAudioModalsOpen]);
 
-  return endedAudioSetup ? (
+  return endedAudioSetup && Service.isEnabled() ? (
     <WakeLock
-      setLocalSettings={setLocalSettings}
       wakeLockSettings={wakeLockSettings}
       request={Service.request}
       release={Service.release}

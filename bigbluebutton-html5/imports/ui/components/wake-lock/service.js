@@ -1,96 +1,134 @@
 import logger from '/imports/startup/client/logger';
 import deviceInfo from '/imports/utils/deviceInfo';
 
-const WAKELOCK_ERRORS = {
-  NOT_SUPPORTED: {
-    locale: 'wakeLockNotSupported',
-    error: 'wake_lock_not_supported',
-  },
-  REQUEST_FAILED: {
-    locale: 'wakeLockAcquireFailed',
-    error: 'wake_lock_request_error',
-  },
-};
+const RETRY_INTERVAL = 5000;
 
-class WakeLock {
+export class WakeLock {
   constructor() {
     this.sentinel = null;
-    this.apiSupport = 'wakeLock' in navigator;
+    this.pending = null;
+    this.requested = false;
+    this.generation = 0;
+    this.lastAttempt = 0;
+    this.handleVisibilityChanged = this.handleVisibilityChanged.bind(this);
+    this.handleInteraction = this.handleInteraction.bind(this);
   }
 
   static isEnabled() {
-    const WAKELOCK_ENABLED = window.meetingClientSettings.public.app.wakeLock.enabled;
-    return WAKELOCK_ENABLED;
+    return window.meetingClientSettings.public.app.wakeLock.enabled;
   }
 
   isSupported() {
-    const { isMobile } = deviceInfo;
-    return WakeLock.isEnabled() && this.apiSupport && isMobile;
+    return WakeLock.isEnabled() && this.isMobile()
+      && typeof navigator.wakeLock?.request === 'function';
   }
 
   isMobile() {
-    const { isMobile } = deviceInfo;
-    return isMobile;
+    return deviceInfo.isMobile;
   }
 
   isActive() {
-    return this.sentinel !== null;
+    return this.sentinel !== null && !this.sentinel.released;
   }
 
   handleVisibilityChanged() {
-    if (document.visibilityState === 'visible') {
-      this.request();
-    }
+    if (this.requested && document.visibilityState === 'visible') this.acquire();
   }
 
-  handleRelease() {
-    document.removeEventListener('visibilitychange', this.handleVisibilityChanged);
-    this.sentinel = null;
+  handleInteraction() {
+    // Retry browser refusals on a later user gesture, without a polling loop.
+    if (Date.now() - this.lastAttempt >= RETRY_INTERVAL) this.handleVisibilityChanged();
   }
 
-  async request() {
-    if (!this.isSupported()) {
-      logger.warn({
-        logCode: WAKELOCK_ERRORS.NOT_SUPPORTED.error,
-      }, 'Wake lock API not supported');
-      return {
-        ...WAKELOCK_ERRORS.NOT_SUPPORTED,
-        msg: 'Wake lock API not supported',
-      };
-    }
-
+  async releaseSentinel(sentinel) {
+    if (!sentinel || sentinel.released) return;
     try {
-      this.sentinel = await navigator.wakeLock.request('screen');
-      this.sentinel.addEventListener('release', this.handleRelease);
-      document.addEventListener('visibilitychange', this.handleVisibilityChanged.bind(this));
-      document.addEventListener('fullscreenchange', this.handleVisibilityChanged.bind(this));
+      await sentinel.release();
     } catch (err) {
+      logger.warn({ logCode: 'wake_lock_release_error', extraInfo: { errorName: err.name } },
+        'Could not release screen wake lock.');
+    }
+  }
+
+  async acquireLock(generation) {
+    this.lastAttempt = Date.now();
+    try {
+      const sentinel = await navigator.wakeLock.request('screen');
+      // Leaving the meeting or disabling the setting cancels a pending request.
+      if (!this.requested || generation !== this.generation
+        || document.visibilityState !== 'visible') {
+        await this.releaseSentinel(sentinel);
+        return { error: false, deferred: true };
+      }
+      this.sentinel = sentinel;
+      sentinel.addEventListener('release', () => {
+        if (this.sentinel === sentinel) this.sentinel = null;
+      }, { once: true });
+      return { error: false };
+    } catch (err) {
+      if (!this.requested || generation !== this.generation
+        || document.visibilityState !== 'visible') {
+        return { error: false, deferred: true };
+      }
       logger.warn({
-        logCode: WAKELOCK_ERRORS.REQUEST_FAILED.error,
+        logCode: 'wake_lock_request_error',
         extraInfo: {
           errorName: err.name,
           errorMessage: err.message,
+          visibilityState: document.visibilityState,
         },
-      }, 'Error requesting wake lock.');
-      return {
-        ...WAKELOCK_ERRORS.REQUEST_FAILED,
-        msg: `${err.name} - ${err.message}`,
-      };
+      }, 'Screen wake lock unavailable; will retry when the page is active.');
+      return { error: 'wake_lock_request_error', locale: 'wakeLockAcquireFailed' };
     }
-    return {
-      error: false,
-    };
+  }
+
+  acquire() {
+    if (!this.requested || !this.isSupported() || document.visibilityState !== 'visible') {
+      return Promise.resolve({ error: false, deferred: true });
+    }
+    if (this.isActive()) return Promise.resolve({ error: false });
+    if (this.pending) return this.pending;
+    const pending = this.acquireLock(this.generation);
+    this.pending = pending;
+    return pending.finally(() => {
+      if (this.pending === pending) this.pending = null;
+    });
+  }
+
+  request() {
+    if (!this.isSupported()) {
+      return Promise.resolve({ error: 'wake_lock_not_supported', locale: 'wakeLockNotSupported' });
+    }
+    if (!this.requested) {
+      this.requested = true;
+      document.addEventListener('visibilitychange', this.handleVisibilityChanged);
+      document.addEventListener('fullscreenchange', this.handleVisibilityChanged);
+      window.addEventListener('pageshow', this.handleVisibilityChanged);
+      document.addEventListener('pointerup', this.handleInteraction);
+      document.addEventListener('keydown', this.handleInteraction);
+    }
+    return this.acquire();
   }
 
   release() {
-    if (this.isActive()) this.sentinel.release();
+    this.requested = false;
+    this.generation += 1;
+    this.pending = null;
+    document.removeEventListener('visibilitychange', this.handleVisibilityChanged);
+    document.removeEventListener('fullscreenchange', this.handleVisibilityChanged);
+    window.removeEventListener('pageshow', this.handleVisibilityChanged);
+    document.removeEventListener('pointerup', this.handleInteraction);
+    document.removeEventListener('keydown', this.handleInteraction);
+    const sentinel = this.sentinel;
+    this.sentinel = null;
+    return this.releaseSentinel(sentinel);
   }
 }
 
 const wakeLock = new WakeLock();
 
 export default {
-  isEnabled: () => wakeLock.isEnabled(),
+  isEnabled: () => WakeLock.isEnabled(),
   isSupported: () => wakeLock.isSupported(),
   isMobile: () => wakeLock.isMobile(),
   isActive: () => wakeLock.isActive(),

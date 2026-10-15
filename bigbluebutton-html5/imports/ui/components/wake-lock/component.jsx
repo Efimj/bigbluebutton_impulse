@@ -2,16 +2,9 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { defineMessages, injectIntl } from 'react-intl';
 import { notify } from '/imports/ui/services/notification';
-import { getSettingsSingletonInstance } from '/imports/ui/services/settings';
 import Styled from './styles';
 
 const intlMessages = defineMessages({
-  wakeLockOfferTitle: {
-    id: 'app.toast.wakeLock.offerTitle',
-  },
-  wakeLockAcquireSuccess: {
-    id: 'app.toast.wakeLock.acquireSuccess',
-  },
   wakeLockAcquireFailed: {
     id: 'app.toast.wakeLock.acquireFailed',
   },
@@ -20,7 +13,7 @@ const intlMessages = defineMessages({
   },
   wakeLockDisclaimer: {
     id: 'app.toast.wakeLock.disclaimer',
-  }
+  },
 });
 
 const propTypes = {
@@ -28,15 +21,12 @@ const propTypes = {
   request: PropTypes.func.isRequired,
   release: PropTypes.func.isRequired,
   wakeLockSettings: PropTypes.bool.isRequired,
-  setLocalSettings: PropTypes.func.isRequired,
 };
 
 class WakeLock extends Component {
-  constructor() {
-    super();
-  }
-
   componentDidMount() {
+    this.mounted = true;
+    this.requestGeneration = 0;
     const { wakeLockSettings } = this.props;
 
     if (wakeLockSettings) {
@@ -47,12 +37,19 @@ class WakeLock extends Component {
   componentDidUpdate(prevProps) {
     const { wakeLockSettings, release } = this.props;
     if (wakeLockSettings !== prevProps.wakeLockSettings) {
+      this.requestGeneration += 1;
       if (wakeLockSettings) {
         this.requestWakeLock();
       } else {
         release();
       }
     }
+  }
+
+  componentWillUnmount() {
+    this.mounted = false;
+    const { release } = this.props;
+    release();
   }
 
   getToast(id, message) {
@@ -67,30 +64,28 @@ class WakeLock extends Component {
 
   feedbackToast(result) {
     const { intl } = this.props;
-    
+
     const feedbackToastProps = {
       closeOnClick: true,
       autoClose: true,
       closeButton: false,
     };
 
-    const toastType = result.error ? 'error' : 'success';
-    const message = result.error
-      ? intl.formatMessage(intlMessages.wakeLockDisclaimer, {
-          error: intl.formatMessage(intlMessages[result.locale])
-        })
-    : intl.formatMessage(intlMessages.wakeLockAcquireSuccess);
+    const message = intl.formatMessage(intlMessages.wakeLockDisclaimer, {
+      error: intl.formatMessage(intlMessages[result.locale]),
+    });
     const feedbackToast = this.getToast('wakeLockToast', message);
-    notify(feedbackToast, toastType, 'lock', feedbackToastProps, null, true);
+    notify(feedbackToast, 'warning', 'lock', feedbackToastProps, null, true);
   }
 
-  requestWakeLock () {
-    const Settings = getSettingsSingletonInstance();
-    const { request, setLocalSettings } = this.props;
+  requestWakeLock() {
+    const { request } = this.props;
+    const generation = this.requestGeneration;
     request().then((result) => {
-      if (result && result.error) {
-        Settings.application.wakeLock = false;
-        Settings.save(setLocalSettings);
+      const { wakeLockSettings } = this.props;
+      // A browser refusal must not permanently disable the user's preference.
+      if (this.mounted && wakeLockSettings && generation === this.requestGeneration
+        && result && result.error) {
         this.feedbackToast(result);
       }
     });
