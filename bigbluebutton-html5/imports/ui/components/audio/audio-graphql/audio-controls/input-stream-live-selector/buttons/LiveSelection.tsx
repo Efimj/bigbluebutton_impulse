@@ -382,7 +382,7 @@ export const LiveSelection: React.FC<LiveSelectionProps> = ({
           customStyles={!isMobile ? customStyles : null}
           trigger={(
             <Styled.RelativePositioningContainer>
-              {shouldTreatAsMicrophone() && !isMobile
+              {shouldTreatAsMicrophone()
                 ? (
                   <MuteToggle
                     talking={talking}
